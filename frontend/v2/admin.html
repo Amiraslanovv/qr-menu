@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>QR Menyu — Admin Panel</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f5f7;--white:#fff;--border:rgba(0,0,0,.08);
+  --text:#1d1d1f;--muted:#6e6e73;
+  --accent:#c8963e;--accent-bg:rgba(200,150,62,.1);
+  --green:#28a745;--red:#dc3545;--radius:12px;
+  --sidebar:220px;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;font-size:14px}
+
+/* ── SIDEBAR ── */
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sidebar);background:var(--white);border-right:.5px solid var(--border);display:flex;flex-direction:column;z-index:20}
+.sidebar-logo{padding:20px 16px 14px;border-bottom:.5px solid var(--border)}
+.sidebar-logo h2{font-size:16px;font-weight:700}
+.sidebar-logo p{font-size:12px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nav{flex:1;padding:10px 8px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .15s;border:none;background:none;width:100%;text-align:left}
+.nav-item:hover{background:var(--bg);color:var(--text)}
+.nav-item.active{background:var(--accent-bg);color:var(--accent)}
+.nav-item .ni{font-size:16px;width:20px;text-align:center}
+.sidebar-bottom{padding:10px 8px;border-top:.5px solid var(--border)}
+/* ── LANG TOGGLE ── */
+.lang-toggle{display:flex;gap:4px;padding:12px 16px;border-bottom:.5px solid var(--border)}
+.lang-btn{flex:1;padding:5px;border-radius:6px;border:.5px solid var(--border);background:none;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted)}
+.lang-btn.active{background:var(--accent-bg);color:var(--accent);border-color:rgba(200,150,62,.3)}
+
+/* ── MAIN ── */
+.main{margin-left:var(--sidebar);min-height:100vh;padding:26px}
+.page{display:none}.page.active{display:block}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px}
+.page-header h1{font-size:21px;font-weight:700}
+
+/* ── CARDS ── */
+.card{background:var(--white);border:.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:18px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-title{font-size:15px;font-weight:600}
+
+/* ── STATS ── */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+.stat-card{background:var(--white);border:.5px solid var(--border);border-radius:var(--radius);padding:16px 18px}
+.stat-lbl{font-size:11px;color:var(--muted);margin-bottom:6px}
+.stat-val{font-size:26px;font-weight:700}
+.stat-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.stat-val.accent{color:var(--accent)}.stat-val.green{color:var(--green)}
+
+/* ── BUTTONS ── */
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:opacity .15s}
+.btn:hover{opacity:.85}.btn:active{opacity:.7}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-outline{background:transparent;border:.5px solid var(--border);color:var(--text)}
+.btn-danger{background:#fee2e2;color:var(--red)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-green{background:#d1fae5;color:var(--green)}
+
+/* ── TABLE ── */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 10px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);border-bottom:.5px solid var(--border)}
+td{padding:11px 10px;border-bottom:.5px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg)}
+
+/* ── TOGGLE ── */
+.toggle{position:relative;width:36px;height:20px;display:inline-block;cursor:pointer;flex-shrink:0}
+.toggle input{display:none}
+.toggle-track{position:absolute;inset:0;background:#ddd;border-radius:10px;transition:background .2s}
+.toggle input:checked+.toggle-track{background:var(--green)}
+.toggle-thumb{position:absolute;top:2px;left:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle input:checked~.toggle-thumb{transform:translateX(16px)}
+
+/* ── PILL ── */
+.pill{display:inline-block;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:500}
+.pill-popular{background:rgba(255,149,0,.15);color:#d97706}
+.pill-new{background:rgba(40,167,69,.15);color:var(--green)}
+
+/* ── FORM ── */
+.form-group{margin-bottom:13px}
+.form-label{font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px;display:block}
+.form-input{width:100%;padding:9px 11px;border:.5px solid var(--border);border-radius:8px;font-size:13px;background:var(--white);color:var(--text);outline:none}
+.form-input:focus{border-color:var(--accent)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.lang-tabs{display:flex;gap:4px;margin-bottom:10px}
+.lang-tab{padding:5px 12px;border-radius:6px;border:.5px solid var(--border);background:none;font-size:12px;font-weight:600;cursor:pointer;color:var(--muted)}
+.lang-tab.active{background:var(--accent-bg);color:var(--accent)}
+
+/* ── IMAGE UPLOAD ── */
+.img-upload-box{border:1.5px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;position:relative}
+.img-upload-box:hover{border-color:var(--accent)}
+.img-preview{width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-bottom:8px;display:none}
+.img-preview.show{display:block}
+.upload-label{font-size:13px;color:var(--muted)}
+.upload-progress{display:none;margin-top:8px}
+.progress-bar{height:4px;background:var(--bg);border-radius:2px;overflow:hidden;margin-top:4px}
+.progress-fill{height:100%;background:var(--accent);border-radius:2px;width:0;transition:width .3s}
+
+/* ── MODAL ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:50;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--white);border-radius:var(--radius);padding:22px;width:92%;max-width:480px;max-height:90vh;overflow-y:auto;transform:scale(.96);transition:transform .2s}
+.overlay.open .modal{transform:scale(1)}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:16px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
+
+/* ── CHART ── */
+.bar-chart{display:flex;align-items:flex-end;gap:5px;height:80px}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bar{width:100%;border-radius:4px 4px 0 0;background:var(--accent);opacity:.75}
+.bar-label{font-size:10px;color:var(--muted)}
+
+/* ── QR BOX ── */
+.qr-box{background:var(--bg);border-radius:var(--radius);padding:24px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px}
+.qr-icon{font-size:80px;line-height:1}
+
+/* ── LOGIN ── */
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100}
+.login-box{background:var(--white);border:.5px solid var(--border);border-radius:var(--radius);padding:32px;width:340px}
+.login-box h2{font-size:20px;font-weight:700;margin-bottom:4px}
+.login-box p{font-size:13px;color:var(--muted);margin-bottom:22px}
+.login-error{color:var(--red);font-size:13px;margin-top:10px;display:none}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:20px;right:20px;background:#1d1d1f;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:200;opacity:0;pointer-events:none;transition:opacity .3s}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- ═══ GİRİŞ EKRANI ═══ -->
+<div id="login-screen">
+  <div class="login-box">
+    <h2>🍽️ QR Menyu</h2>
+    <p id="login-subtitle">Admin panelə daxil ol</p>
+    <div class="form-group" style="margin-top:4px">
+      <label class="form-label">İstifadəçi adı</label>
+      <input class="form-input" id="l-user" placeholder="kafe_seher" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Şifrə</label>
+      <input class="form-input" id="l-pass" type="password" placeholder="••••••••" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()" id="login-btn">Daxil ol</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar" id="sidebar" style="display:none">
+  <div class="sidebar-logo">
+    <h2>🍽️ QR Menyu</h2>
+    <p id="sidebar-name">—</p>
+  </div>
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setUiLang('az',this)">AZ</button>
+    <button class="lang-btn" onclick="setUiLang('ru',this)">RU</button>
+    <button class="lang-btn" onclick="setUiLang('en',this)">EN</button>
+  </div>
+  <nav class="nav">
+    <button class="nav-item active" data-page="dashboard" onclick="navigate('dashboard',this)"><span class="ni">📊</span><span data-t="nav_dashboard">İcmal</span></button>
+    <button class="nav-item" data-page="menu" onclick="navigate('menu',this)"><span class="ni">📋</span><span data-t="nav_menu">Menyu</span></button>
+    <button class="nav-item" data-page="specials" onclick="navigate('specials',this)"><span class="ni">✨</span><span data-t="nav_specials">Günün təklifi</span></button>
+    <button class="nav-item" data-page="orders" onclick="navigate('orders',this)"><span class="ni">📦</span><span data-t="nav_orders">Sifarişlər</span></button>
+    <button class="nav-item" data-page="qr" onclick="navigate('qr',this)"><span class="ni">📱</span><span data-t="nav_qr">QR Kod</span></button>
+    <button class="nav-item" data-page="settings" onclick="navigate('settings',this)"><span class="ni">⚙️</span><span data-t="nav_settings">Tənzimləmələr</span></button>
+  </nav>
+  <div class="sidebar-bottom">
+    <button class="nav-item" onclick="previewMenu()"><span class="ni">👁️</span><span data-t="preview">Menyuya bax</span></button>
+    <button class="nav-item" onclick="doLogout()"><span class="ni">🚪</span><span data-t="logout">Çıxış</span></button>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<main class="main" id="main" style="display:none">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <h1 data-t="nav_dashboard">İcmal</h1>
+      <span style="font-size:13px;color:var(--muted)" id="today-date"></span>
+    </div>
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card"><div class="stat-lbl" data-t="stat_month">Bu ay skan</div><div class="stat-val accent" id="s-month">—</div></div>
+      <div class="stat-card"><div class="stat-lbl" data-t="stat_today">Bu gün skan</div><div class="stat-val" id="s-today">—</div></div>
+      <div class="stat-card"><div class="stat-lbl" data-t="stat_items">Elementlər</div><div class="stat-val" id="s-items">—</div></div>
+      <div class="stat-card"><div class="stat-lbl" data-t="stat_cats">Kateqoriyalar</div><div class="stat-val green" id="s-cats">—</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title" data-t="chart_title">Son 30 günün skanları</span></div>
+      <div class="bar-chart" id="bar-chart"></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title" data-t="lang_breakdown">Dil üzrə bölgü</span></div>
+      <div id="lang-chart" style="display:flex;gap:12px;flex-wrap:wrap"></div>
+    </div>
+  </div>
+
+  <!-- MENU -->
+  <div class="page" id="page-menu">
+    <div class="page-header">
+      <h1 data-t="nav_menu">Menyu</h1>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-outline btn-sm" onclick="openCatModal()" data-t="add_cat">+ Kateqoriya</button>
+        <button class="btn btn-primary btn-sm" onclick="openItemModal()" data-t="add_item">+ Element</button>
+      </div>
+    </div>
+    <div id="menu-container"></div>
+  </div>
+
+  <!-- SPECIALS -->
+  <div class="page" id="page-specials">
+    <div class="page-header"><h1 data-t="nav_specials">Günün xüsusi təklifi</h1>
+      <button class="btn btn-primary btn-sm" onclick="openSpecialModal()" data-t="add_special">+ Yeni təklif</button>
+    </div>
+    <div id="specials-container"></div>
+  </div>
+
+  <!-- ORDERS -->
+  <div class="page" id="page-orders">
+    <div class="page-header"><h1 data-t="nav_orders">WhatsApp Sifarişlər</h1>
+      <button class="btn btn-outline btn-sm" onclick="loadOrders()">↻</button>
+    </div>
+    <div class="card">
+      <table><thead><tr>
+        <th data-t="th_time">Vaxt</th><th data-t="th_phone">Telefon</th>
+        <th data-t="th_order">Sifariş</th><th data-t="th_notified">Bildiriş</th>
+      </tr></thead>
+      <tbody id="orders-tbody"></tbody></table>
+    </div>
+  </div>
+
+  <!-- QR -->
+  <div class="page" id="page-qr">
+    <div class="page-header"><h1 data-t="nav_qr">QR Kod</h1></div>
+    <div class="card" style="max-width:380px">
+      <div class="qr-box">
+        <div class="qr-icon">▦</div>
+        <div id="qr-url" style="font-size:12px;color:var(--muted);font-family:monospace"></div>
+        <p style="font-size:12px;color:var(--muted);text-align:center" data-t="qr_hint">
+          QR kodu çap edib masaya yapışdırın. Müştəri skan edəndə menyu açılır.
+        </p>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px">
+        <a class="btn btn-primary" id="qr-dl-btn" download="qr-menyu.svg" data-t="btn_qr_dl">SVG Yüklə</a>
+        <button class="btn btn-outline" onclick="previewMenu()" data-t="btn_preview">Menyuya bax</button>
+      </div>
+      <div style="margin-top:14px;padding-top:14px;border-top:.5px solid var(--border)">
+        <p style="font-size:12px;color:var(--muted);margin-bottom:8px" data-t="qr_lang_hint">Dil ilə birlikdə QR kod:</p>
+        <div style="display:flex;gap:8px">
+          <a class="btn btn-outline btn-sm" id="qr-dl-az">AZ</a>
+          <a class="btn btn-outline btn-sm" id="qr-dl-ru">RU</a>
+          <a class="btn btn-outline btn-sm" id="qr-dl-en">EN</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="page" id="page-settings">
+    <div class="page-header"><h1 data-t="nav_settings">Tənzimləmələr</h1></div>
+    <div class="card">
+      <div class="lang-tabs" id="settings-lang-tabs">
+        <button class="lang-tab active" onclick="setSettingsLang('az',this)">AZ</button>
+        <button class="lang-tab" onclick="setSettingsLang('ru',this)">RU</button>
+        <button class="lang-tab" onclick="setSettingsLang('en',this)">EN</button>
+      </div>
+      <div id="settings-lang-az">
+        <div class="form-group"><label class="form-label" data-t="lbl_name">Restoran adı (AZ)</label><input class="form-input" id="s-name-az"/></div>
+        <div class="form-group"><label class="form-label" data-t="lbl_desc">Təsvir (AZ)</label><input class="form-input" id="s-desc-az"/></div>
+        <div class="form-group"><label class="form-label" data-t="lbl_addr">Ünvan (AZ)</label><input class="form-input" id="s-addr-az"/></div>
+      </div>
+      <div id="settings-lang-ru" style="display:none">
+        <div class="form-group"><label class="form-label">Restoran adı (RU)</label><input class="form-input" id="s-name-ru"/></div>
+        <div class="form-group"><label class="form-label">Təsvir (RU)</label><input class="form-input" id="s-desc-ru"/></div>
+        <div class="form-group"><label class="form-label">Ünvan (RU)</label><input class="form-input" id="s-addr-ru"/></div>
+      </div>
+      <div id="settings-lang-en" style="display:none">
+        <div class="form-group"><label class="form-label">Restoran adı (EN)</label><input class="form-input" id="s-name-en"/></div>
+        <div class="form-group"><label class="form-label">Təsvir (EN)</label><input class="form-input" id="s-desc-en"/></div>
+        <div class="form-group"><label class="form-label">Ünvan (EN)</label><input class="form-input" id="s-addr-en"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label" data-t="lbl_phone">Telefon</label><input class="form-input" id="s-phone"/></div>
+        <div class="form-group"><label class="form-label">WhatsApp</label><input class="form-input" id="s-whatsapp"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">WiFi</label><input class="form-input" id="s-wifi"/></div>
+
+      <!-- Logo & Cover yükləmə -->
+      <div class="form-row" style="margin-top:8px">
+        <div>
+          <label class="form-label" data-t="lbl_logo">Logo</label>
+          <div class="img-upload-box" onclick="triggerUpload('logo')">
+            <img id="prev-logo" class="img-preview"/>
+            <div class="upload-label" data-t="upload_hint">Klikləyin və ya sürüşdürün</div>
+            <div class="upload-progress" id="prog-logo"><div class="progress-bar"><div class="progress-fill" id="fill-logo"></div></div></div>
+          </div>
+        </div>
+        <div>
+          <label class="form-label" data-t="lbl_cover">Cover şəkli</label>
+          <div class="img-upload-box" onclick="triggerUpload('cover')">
+            <img id="prev-cover" class="img-preview"/>
+            <div class="upload-label" data-t="upload_hint">Klikləyin və ya sürüşdürün</div>
+            <div class="upload-progress" id="prog-cover"><div class="progress-bar"><div class="progress-fill" id="fill-cover"></div></div></div>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFileSelect(event)"/>
+      <div style="margin-top:8px;display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="saveSettings()" data-t="btn_save">Saxla</button>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- MODALS -->
+<!-- Add Category -->
+<div class="overlay" id="cat-modal">
+  <div class="modal">
+    <div class="modal-title" data-t="add_cat">Kateqoriya əlavə et</div>
+    <div class="lang-tabs"><button class="lang-tab active" onclick="setModalLang('cat','az',this)">AZ</button><button class="lang-tab" onclick="setModalLang('cat','ru',this)">RU</button><button class="lang-tab" onclick="setModalLang('cat','en',this)">EN</button></div>
+    <div id="cat-az"><div class="form-group"><label class="form-label">Ad (AZ) *</label><input class="form-input" id="cat-name-az" placeholder="İçkilər"/></div></div>
+    <div id="cat-ru" style="display:none"><div class="form-group"><label class="form-label">Ad (RU)</label><input class="form-input" id="cat-name-ru" placeholder="Напитки"/></div></div>
+    <div id="cat-en" style="display:none"><div class="form-group"><label class="form-label">Ad (EN)</label><input class="form-input" id="cat-name-en" placeholder="Drinks"/></div></div>
+    <div class="form-group"><label class="form-label">Emoji ikonu</label><input class="form-input" id="cat-icon" placeholder="☕" style="font-size:20px;width:80px"/></div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('cat-modal')" data-t="btn_cancel">Ləğv et</button><button class="btn btn-primary" onclick="saveCategory()" data-t="btn_save">Saxla</button></div>
+  </div>
+</div>
+
+<!-- Add Item -->
+<div class="overlay" id="item-modal">
+  <div class="modal">
+    <div class="modal-title" data-t="add_item">Element əlavə et</div>
+    <div class="lang-tabs"><button class="lang-tab active" onclick="setModalLang('item','az',this)">AZ</button><button class="lang-tab" onclick="setModalLang('item','ru',this)">RU</button><button class="lang-tab" onclick="setModalLang('item','en',this)">EN</button></div>
+    <div id="item-az">
+      <div class="form-group"><label class="form-label">Ad (AZ) *</label><input class="form-input" id="item-name-az"/></div>
+      <div class="form-group"><label class="form-label">Təsvir (AZ)</label><input class="form-input" id="item-desc-az"/></div>
+    </div>
+    <div id="item-ru" style="display:none">
+      <div class="form-group"><label class="form-label">Ad (RU)</label><input class="form-input" id="item-name-ru"/></div>
+      <div class="form-group"><label class="form-label">Təsvir (RU)</label><input class="form-input" id="item-desc-ru"/></div>
+    </div>
+    <div id="item-en" style="display:none">
+      <div class="form-group"><label class="form-label">Ad (EN)</label><input class="form-input" id="item-name-en"/></div>
+      <div class="form-group"><label class="form-label">Təsvir (EN)</label><input class="form-input" id="item-desc-en"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Kateqoriya *</label><select class="form-input" id="item-cat-id"></select></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Qiymət (AZN) *</label><input class="form-input" id="item-price" type="number" step="0.01" min="0"/></div>
+      <div class="form-group"><label class="form-label">Çəki/Həcm</label><input class="form-input" id="item-weight" placeholder="250q"/></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:14px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="item-popular"> 🔥 Populyar</label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="item-new"> ✨ Yeni</label>
+    </div>
+    <!-- Element şəkli -->
+    <div class="form-group">
+      <label class="form-label" data-t="lbl_image">Şəkil</label>
+      <div class="img-upload-box" onclick="triggerUpload('item')">
+        <img id="prev-item" class="img-preview"/>
+        <div class="upload-label" data-t="upload_hint">Klikləyin — JPG, PNG, WEBP (maks 5MB)</div>
+        <div class="upload-progress" id="prog-item"><div class="progress-bar"><div class="progress-fill" id="fill-item"></div></div></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('item-modal')" data-t="btn_cancel">Ləğv et</button><button class="btn btn-primary" onclick="saveItem()" data-t="btn_save">Saxla</button></div>
+  </div>
+</div>
+
+<!-- Add Special -->
+<div class="overlay" id="special-modal">
+  <div class="modal">
+    <div class="modal-title" data-t="add_special">Günün təklifi</div>
+    <div class="lang-tabs"><button class="lang-tab active" onclick="setModalLang('sp','az',this)">AZ</button><button class="lang-tab" onclick="setModalLang('sp','ru',this)">RU</button><button class="lang-tab" onclick="setModalLang('sp','en',this)">EN</button></div>
+    <div id="sp-az">
+      <div class="form-group"><label class="form-label">Başlıq (AZ) *</label><input class="form-input" id="sp-title-az"/></div>
+      <div class="form-group"><label class="form-label">Təsvir (AZ)</label><input class="form-input" id="sp-desc-az"/></div>
+    </div>
+    <div id="sp-ru" style="display:none">
+      <div class="form-group"><label class="form-label">Başlıq (RU)</label><input class="form-input" id="sp-title-ru"/></div>
+      <div class="form-group"><label class="form-label">Təsvir (RU)</label><input class="form-input" id="sp-desc-ru"/></div>
+    </div>
+    <div id="sp-en" style="display:none">
+      <div class="form-group"><label class="form-label">Başlıq (EN)</label><input class="form-input" id="sp-title-en"/></div>
+      <div class="form-group"><label class="form-label">Təsvir (EN)</label><input class="form-input" id="sp-desc-en"/></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Köhnə qiymət</label><input class="form-input" id="sp-old" type="number" step="0.01"/></div>
+      <div class="form-group"><label class="form-label">Endirimli qiymət *</label><input class="form-input" id="sp-new" type="number" step="0.01"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Etibarlılıq tarixi</label><input class="form-input" id="sp-valid" type="date"/></div>
+    <div class="modal-footer"><button class="btn btn-outline" onclick="closeModal('special-modal')" data-t="btn_cancel">Ləğv et</button><button class="btn btn-primary" onclick="saveSpecial()" data-t="btn_save">Saxla</button></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+// CONFIG
+// ════════════════════════════════════════════════════════
+const API = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://localhost:8000/api"
+  : "/api";
+
+// ════════════════════════════════════════════════════════
+// TRANSLATIONS
+// ════════════════════════════════════════════════════════
+const T = {
+  az: {
+    nav_dashboard:"İcmal",nav_menu:"Menyu",nav_specials:"Günün təklifi",
+    nav_orders:"Sifarişlər",nav_qr:"QR Kod",nav_settings:"Tənzimləmələr",
+    stat_month:"Bu ay skan",stat_today:"Bu gün",stat_items:"Elementlər",stat_cats:"Kateqoriyalar",
+    chart_title:"Son 30 günün skanları",lang_breakdown:"Dil üzrə bölgü",
+    add_cat:"+ Kateqoriya",add_item:"+ Element",add_special:"+ Yeni təklif",
+    th_time:"Vaxt",th_phone:"Telefon",th_order:"Sifariş",th_notified:"Bildiriş",
+    qr_hint:"QR kodu çap edib masaya yapışdırın.",qr_lang_hint:"Dil üzrə QR kodlar:",
+    btn_qr_dl:"SVG Yüklə",btn_preview:"Menyuya bax",btn_save:"Saxla",btn_cancel:"Ləğv et",
+    lbl_name:"Ad",lbl_desc:"Təsvir",lbl_addr:"Ünvan",lbl_phone:"Telefon",
+    lbl_logo:"Logo",lbl_cover:"Cover şəkli",lbl_image:"Şəkil",
+    upload_hint:"Klikləyin — JPG, PNG, WEBP",preview:"Menyuya bax",logout:"Çıxış",
+    no_orders:"Hələ sifariş yoxdur",yes:"Bəli",no:"Xeyr",
+  },
+  ru: {
+    nav_dashboard:"Обзор",nav_menu:"Меню",nav_specials:"Спецпредложение",
+    nav_orders:"Заказы",nav_qr:"QR Код",nav_settings:"Настройки",
+    stat_month:"Сканов за месяц",stat_today:"Сегодня",stat_items:"Позиции",stat_cats:"Категории",
+    chart_title:"Сканы за 30 дней",lang_breakdown:"По языкам",
+    add_cat:"+ Категория",add_item:"+ Позиция",add_special:"+ Предложение",
+    th_time:"Время",th_phone:"Телефон",th_order:"Заказ",th_notified:"Уведомление",
+    qr_hint:"Распечатайте QR-код и разместите на столе.",qr_lang_hint:"QR по языкам:",
+    btn_qr_dl:"Скачать SVG",btn_preview:"Открыть меню",btn_save:"Сохранить",btn_cancel:"Отмена",
+    lbl_name:"Название",lbl_desc:"Описание",lbl_addr:"Адрес",lbl_phone:"Телефон",
+    lbl_logo:"Логотип",lbl_cover:"Обложка",lbl_image:"Фото",
+    upload_hint:"Нажмите — JPG, PNG, WEBP",preview:"Открыть меню",logout:"Выход",
+    no_orders:"Заказов пока нет",yes:"Да",no:"Нет",
+  }
+};
+
+// ════════════════════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════════════════════
+let token = localStorage.getItem("qr_token") || "";
+let slug  = localStorage.getItem("qr_slug")  || "";
+let uiLang = "az";
+let uploadTarget = "item";
+let uploadedItemImage = "";
+
+// ════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const toast = msg => { const t=$("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2500); };
+
+async function api(method, path, body=null, isForm=false) {
+  const opts = {
+    method,
+    headers: { "Authorization": `Token ${token}` },
+  };
+  if (body && !isForm) { opts.headers["Content-Type"]="application/json"; opts.body=JSON.stringify(body); }
+  if (body && isForm) opts.body = body;
+  const res = await fetch(`${API}${path}`, opts);
+  if (res.status === 401) { doLogout(); return null; }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ════════════════════════════════════════════════════════
+// UI LANGUAGE
+// ════════════════════════════════════════════════════════
+function setUiLang(lang, btn) {
+  uiLang = lang;
+  document.querySelectorAll(".lang-toggle .lang-btn").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  const t = T[lang] || T.az;
+  document.querySelectorAll("[data-t]").forEach(el => {
+    const key = el.dataset.t;
+    if (t[key]) el.textContent = t[key];
+  });
+}
+
+function setSettingsLang(lang, btn) {
+  ["az","ru","en"].forEach(l => { $(`settings-lang-${l}`).style.display = l===lang?"block":"none"; });
+  document.querySelectorAll("#settings-lang-tabs .lang-tab").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+}
+
+function setModalLang(prefix, lang, btn) {
+  const tabs = btn.closest(".lang-tabs");
+  tabs.querySelectorAll(".lang-tab").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  const container = btn.closest(".modal");
+  ["az","ru","en"].forEach(l => {
+    const el = container.querySelector(`#${prefix}-${l}`);
+    if (el) el.style.display = l===lang?"block":"none";
+  });
+}
+
+// ════════════════════════════════════════════════════════
+// AUTH
+// ════════════════════════════════════════════════════════
+async function doLogin() {
+  const btn = $("login-btn");
+  btn.textContent = "..."; btn.disabled = true;
+  const err = $("login-error");
+  err.style.display = "none";
+  try {
+    const res = await fetch(`${API}/auth/login/`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ username:$("l-user").value.trim(), password:$("l-pass").value })
+    });
+    const data = await res.json();
+    if (!res.ok) { err.textContent = data.detail || "Xəta baş verdi."; err.style.display="block"; return; }
+    token = data.token; slug = data.restaurant_slug;
+    localStorage.setItem("qr_token", token);
+    localStorage.setItem("qr_slug", slug);
+    showApp();
+  } catch(e) {
+    err.textContent = "Server əlaqəsi alınmadı."; err.style.display="block";
+  } finally {
+    btn.textContent = "Daxil ol"; btn.disabled = false;
+  }
+}
+
+function doLogout() {
+  token=""; slug="";
+  localStorage.removeItem("qr_token"); localStorage.removeItem("qr_slug");
+  location.reload();
+}
+
+function showApp() {
+  $("login-screen").style.display="none";
+  $("sidebar").style.display="flex";
+  $("main").style.display="block";
+  $("today-date").textContent = new Date().toLocaleDateString("az-AZ",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+  loadDashboard();
+  updateQRLinks();
+  loadSettings();
+}
+
+// Auto-login if token exists
+window.addEventListener("load", () => {
+  if (token && slug) showApp();
+});
+
+// ════════════════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════════════════
+function navigate(page, btn) {
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  $(`page-${page}`).classList.add("active");
+  btn.classList.add("active");
+  if (page==="menu") loadMenu();
+  if (page==="specials") loadSpecials();
+  if (page==="orders") loadOrders();
+  if (page==="dashboard") loadDashboard();
+}
+
+// ════════════════════════════════════════════════════════
+// DASHBOARD
+// ════════════════════════════════════════════════════════
+async function loadDashboard() {
+  const data = await api("GET","/owner/analytics/");
+  if (!data) return;
+  $("s-month").textContent = data.this_month_views;
+  $("s-today").textContent = data.today_views;
+  $("s-items").textContent = data.total_items;
+  $("s-cats").textContent  = data.total_categories;
+
+  // Bar chart — son 30 gün
+  const days = data.daily_30 || [];
+  const chart = $("bar-chart");
+  if (!days.length) { chart.innerHTML=`<p style="color:var(--muted);font-size:13px">Hələ məlumat yoxdur</p>`; return; }
+  const max = Math.max(...days.map(d=>d.count),1);
+  chart.innerHTML = days.slice(-14).map(d=>{
+    const date = new Date(d.date);
+    const lbl  = `${date.getDate()}/${date.getMonth()+1}`;
+    return `<div class="bar-wrap">
+      <div style="font-size:9px;color:var(--muted);margin-bottom:1px">${d.count}</div>
+      <div class="bar" style="height:${Math.max((d.count/max)*64,4)}px"></div>
+      <div class="bar-label">${lbl}</div>
+    </div>`;
+  }).join("");
+
+  // Lang breakdown
+  const lc = $("lang-chart");
+  lc.innerHTML = (data.lang_breakdown||[]).map(l=>`
+    <div style="background:var(--bg);border-radius:8px;padding:10px 16px;text-align:center">
+      <div style="font-size:11px;color:var(--muted)">${l.lang.toUpperCase()}</div>
+      <div style="font-size:20px;font-weight:700;color:var(--accent)">${l.count}</div>
+    </div>`).join("");
+}
+
+// ════════════════════════════════════════════════════════
+// MENU
+// ════════════════════════════════════════════════════════
+let allCats = [];
+
+async function loadMenu() {
+  allCats = await api("GET","/owner/categories/") || [];
+  const container = $("menu-container");
+  if (!allCats.length) { container.innerHTML=`<div class="card"><p style="color:var(--muted)">Hələ kateqoriya yoxdur. "+ Kateqoriya" düyməsini sıxın.</p></div>`; return; }
+  container.innerHTML = allCats.map(cat=>`
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">${cat.icon||""} ${cat.name_az}</span>
+        <div style="display:flex;gap:6px">
+          <span style="font-size:12px;color:var(--muted)">${(cat.items||[]).length} element</span>
+          <button class="btn btn-danger btn-sm" onclick="deleteCat(${cat.id})">Sil</button>
+        </div>
+      </div>
+      ${renderItemsTable(cat)}
+    </div>`).join("");
+  populateCatSelect();
+}
+
+function renderItemsTable(cat) {
+  const items = cat.items || [];
+  if (!items.length) return `<p style="color:var(--muted);font-size:13px;padding:8px 0">Bu kateqoriyada element yoxdur.</p>`;
+  return `<table><thead><tr>
+    <th>Ad</th><th>Qiymət</th><th>Şəkil</th><th>Etiket</th><th>Mövcuddur</th><th></th>
+  </tr></thead><tbody>
+  ${items.map(item=>`<tr>
+    <td><div style="font-weight:500">${item.name_az}</div><div style="font-size:11px;color:var(--muted)">${item.description_az||""}</div></td>
+    <td style="font-weight:600;color:var(--accent)">${parseFloat(item.price).toFixed(2)} AZN</td>
+    <td>${item.image?`<img src="${item.image}" style="width:40px;height:40px;border-radius:6px;object-fit:cover">`:"-"}</td>
+    <td>
+      ${item.is_popular?`<span class="pill pill-popular">🔥</span> `:""}
+      ${item.is_new?`<span class="pill pill-new">✨</span>`:""}
+    </td>
+    <td>
+      <label class="toggle">
+        <input type="checkbox" ${item.is_available?"checked":""} onchange="toggleItem(${item.id},this)">
+        <div class="toggle-track"></div><div class="toggle-thumb"></div>
+      </label>
+    </td>
+    <td><button class="btn btn-danger btn-sm" onclick="deleteItem(${item.id})">Sil</button></td>
+  </tr>`).join("")}
+  </tbody></table>`;
+}
+
+async function toggleItem(id, checkbox) {
+  const data = await api("PATCH",`/owner/items/${id}/toggle/`);
+  if (data) toast(data.is_available ? "Aktiv edildi ✓" : "Deaktiv edildi");
+}
+
+async function deleteItem(id) {
+  if (!confirm("Bu elementi silmək istəyirsiniz?")) return;
+  await api("DELETE",`/owner/items/${id}/`);
+  toast("Silindi"); loadMenu();
+}
+
+async function deleteCat(id) {
+  if (!confirm("Bu kateqoriyanı və bütün elementlərini silmək istəyirsiniz?")) return;
+  await api("DELETE",`/owner/categories/${id}/`);
+  toast("Kateqoriya silindi"); loadMenu();
+}
+
+function populateCatSelect() {
+  const sel = $("item-cat-id");
+  sel.innerHTML = allCats.map(c=>`<option value="${c.id}">${c.icon||""} ${c.name_az}</option>`).join("");
+}
+
+// ════════════════════════════════════════════════════════
+// MODALS
+// ════════════════════════════════════════════════════════
+function openCatModal()     { $("cat-modal").classList.add("open"); }
+function openItemModal()    { populateCatSelect(); uploadedItemImage=""; $("prev-item").classList.remove("show"); $("item-modal").classList.add("open"); }
+function openSpecialModal() { $("special-modal").classList.add("open"); }
+function closeModal(id)     { $(id).classList.remove("open"); }
+
+async function saveCategory() {
+  const name_az = $("cat-name-az").value.trim();
+  if (!name_az) { toast("AZ ad vacibdir!"); return; }
+  const body = { name_az, name_ru:$("cat-name-ru").value, name_en:$("cat-name-en").value, icon:$("cat-icon").value };
+  const data = await api("POST","/owner/categories/", body);
+  if (data?.id) { toast("Kateqoriya əlavə edildi ✓"); closeModal("cat-modal"); loadMenu(); $("cat-name-az").value=""; }
+  else toast("Xəta baş verdi");
+}
+
+async function saveItem() {
+  const name_az = $("item-name-az").value.trim();
+  const price   = $("item-price").value;
+  const cat_id  = $("item-cat-id").value;
+  if (!name_az||!price||!cat_id) { toast("Ad, qiymət və kateqoriya vacibdir!"); return; }
+  const body = {
+    category: parseInt(cat_id),
+    name_az, name_ru:$("item-name-ru").value, name_en:$("item-name-en").value,
+    description_az:$("item-desc-az").value, description_ru:$("item-desc-ru").value, description_en:$("item-desc-en").value,
+    price, weight_or_volume:$("item-weight").value,
+    is_popular:$("item-popular").checked, is_new:$("item-new").checked,
+    image: uploadedItemImage,
+  };
+  const data = await api("POST","/owner/items/", body);
+  if (data?.id) { toast("Element əlavə edildi ✓"); closeModal("item-modal"); loadMenu(); uploadedItemImage=""; }
+  else toast("Xəta: "+ JSON.stringify(data));
+}
+
+async function saveSpecial() {
+  const title_az = $("sp-title-az").value.trim();
+  const sp_price = $("sp-new").value;
+  if (!title_az||!sp_price) { toast("Başlıq və endirimli qiymət vacibdir!"); return; }
+  const body = {
+    title_az, title_ru:$("sp-title-ru").value, title_en:$("sp-title-en").value,
+    description_az:$("sp-desc-az").value, description_ru:$("sp-desc-ru").value, description_en:$("sp-desc-en").value,
+    special_price:sp_price, original_price:$("sp-old").value||null,
+    valid_until:$("sp-valid").value||null, is_active:true,
+  };
+  const data = await api("POST","/owner/specials/", body);
+  if (data?.id) { toast("Təklif əlavə edildi ✓"); closeModal("special-modal"); loadSpecials(); }
+  else toast("Xəta baş verdi");
+}
+
+// ════════════════════════════════════════════════════════
+// SPECIALS
+// ════════════════════════════════════════════════════════
+async function loadSpecials() {
+  const specials = await api("GET","/owner/specials/") || [];
+  const c = $("specials-container");
+  if (!specials.length) { c.innerHTML=`<div class="card"><p style="color:var(--muted)">Hələ təklif yoxdur.</p></div>`; return; }
+  c.innerHTML = specials.map(s=>`
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">${s.title_az}</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <label class="toggle"><input type="checkbox" ${s.is_active?"checked":""} onchange="toggleSpecial(${s.id},this)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label>
+          <button class="btn btn-danger btn-sm" onclick="deleteSpecial(${s.id})">Sil</button>
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--muted)">${s.description_az||""}</p>
+      <div style="margin-top:8px;display:flex;gap:12px;align-items:center">
+        ${s.original_price?`<span style="font-size:13px;color:var(--muted);text-decoration:line-through">${s.original_price} AZN</span>`:""}
+        <span style="font-size:18px;font-weight:700;color:var(--accent)">${s.special_price} AZN</span>
+        ${s.valid_until?`<span style="font-size:12px;color:var(--muted)">→ ${s.valid_until}</span>`:""}
+      </div>
+    </div>`).join("");
+}
+
+async function toggleSpecial(id, cb) {
+  await api("PATCH",`/owner/specials/${id}/`, { is_active: cb.checked });
+  toast(cb.checked?"Aktiv edildi ✓":"Deaktiv edildi");
+}
+
+async function deleteSpecial(id) {
+  if (!confirm("Silinsin?")) return;
+  await api("DELETE",`/owner/specials/${id}/`);
+  toast("Silindi"); loadSpecials();
+}
+
+// ════════════════════════════════════════════════════════
+// ORDERS
+// ════════════════════════════════════════════════════════
+async function loadOrders() {
+  const orders = await api("GET","/owner/orders/") || [];
+  const tbody = $("orders-tbody");
+  if (!orders.length) { tbody.innerHTML=`<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">Hələ sifariş yoxdur</td></tr>`; return; }
+  tbody.innerHTML = orders.map(o=>`<tr>
+    <td style="white-space:nowrap;font-size:12px">${new Date(o.created_at).toLocaleString("az-AZ")}</td>
+    <td>${o.customer_phone||"—"}</td>
+    <td>${o.message}</td>
+    <td><span style="color:${o.is_notified?"var(--green)":"var(--muted)"};">${o.is_notified?"✓ Göndərildi":"Gözləyir"}</span></td>
+  </tr>`).join("");
+}
+
+// ════════════════════════════════════════════════════════
+// QR
+// ════════════════════════════════════════════════════════
+function updateQRLinks() {
+  if (!slug) return;
+  const base = `${API.replace("/api","")}/api/menu/${slug}`;
+  $("qr-url").textContent = `${window.location.origin}/menu/${slug}/`;
+  $("qr-dl-btn").href = `${base}/qr/`;
+  $("qr-dl-az").href = `${base}/qr/?lang=az`; $("qr-dl-az").download="qr-az.svg";
+  $("qr-dl-ru").href = `${base}/qr/?lang=ru`; $("qr-dl-ru").download="qr-ru.svg";
+  $("qr-dl-en").href = `${base}/qr/?lang=en`; $("qr-dl-en").download="qr-en.svg";
+}
+
+function previewMenu() {
+  window.open(`${window.location.origin}/menu/${slug}/`, "_blank");
+}
+
+// ════════════════════════════════════════════════════════
+// SETTINGS
+// ════════════════════════════════════════════════════════
+async function loadSettings() {
+  const data = await api("GET","/owner/restaurant/");
+  if (!data) return;
+  $("sidebar-name").textContent = data.name_az;
+  ["az","ru","en"].forEach(l => {
+    const nameEl = $(`s-name-${l}`); if (nameEl) nameEl.value = data[`name_${l}`]||"";
+    const descEl = $(`s-desc-${l}`); if (descEl) descEl.value = data[`description_${l}`]||"";
+    const addrEl = $(`s-addr-${l}`); if (addrEl) addrEl.value = data[`address_${l}`]||"";
+  });
+  $("s-phone").value    = data.phone||"";
+  $("s-whatsapp").value = data.whatsapp||"";
+  $("s-wifi").value     = data.wifi_password||"";
+  if (data.logo)        { $("prev-logo").src=data.logo;   $("prev-logo").classList.add("show"); }
+  if (data.cover_image) { $("prev-cover").src=data.cover_image; $("prev-cover").classList.add("show"); }
+}
+
+async function saveSettings() {
+  const body = {
+    name_az:$("s-name-az").value, name_ru:$("s-name-ru").value, name_en:$("s-name-en").value,
+    description_az:$("s-desc-az").value, description_ru:$("s-desc-ru").value, description_en:$("s-desc-en").value,
+    address_az:$("s-addr-az").value, address_ru:$("s-addr-ru").value, address_en:$("s-addr-en").value,
+    phone:$("s-phone").value, whatsapp:$("s-whatsapp").value, wifi_password:$("s-wifi").value,
+  };
+  if ($("prev-logo").src && !$("prev-logo").src.endsWith("/")) body.logo = $("prev-logo").src;
+  if ($("prev-cover").src && !$("prev-cover").src.endsWith("/")) body.cover_image = $("prev-cover").src;
+  const data = await api("PATCH","/owner/restaurant/", body);
+  if (data?.id||data?.name_az) { toast("Saxlandı ✓"); $("sidebar-name").textContent=data.name_az; }
+  else toast("Xəta baş verdi");
+}
+
+// ════════════════════════════════════════════════════════
+// IMAGE UPLOAD (Cloudinary via backend)
+// ════════════════════════════════════════════════════════
+function triggerUpload(type) {
+  uploadTarget = type;
+  $("file-input").click();
+}
+
+async function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const type = uploadTarget;
+
+  // Preview lokalda göstər
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const prevId = type==="logo"?"prev-logo": type==="cover"?"prev-cover":"prev-item";
+    const prev   = $(prevId);
+    if (prev) { prev.src=ev.target.result; prev.classList.add("show"); }
+  };
+  reader.readAsDataURL(file);
+
+  // Progress göstər
+  const progEl = $(`prog-${type}`);
+  const fillEl = $(`fill-${type}`);
+  if (progEl) progEl.style.display="block";
+
+  // Fake progress animation
+  let p=0;
+  const interval = setInterval(()=>{ p=Math.min(p+10,85); if(fillEl) fillEl.style.width=p+"%"; },120);
+
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    form.append("type", type);
+    const data = await api("POST","/upload/", form, true);
+
+    clearInterval(interval);
+    if (fillEl) fillEl.style.width="100%";
+    setTimeout(()=>{ if(progEl) progEl.style.display="none"; if(fillEl) fillEl.style.width="0"; },600);
+
+    if (data?.url) {
+      toast("Şəkil yükləndi ✓");
+      if (type==="item") uploadedItemImage = data.url;
+      else if (type==="logo")  $("prev-logo").src  = data.url;
+      else if (type==="cover") $("prev-cover").src = data.url;
+    } else {
+      toast("Yükləmə xətası: " + (data?.detail||""));
+    }
+  } catch(err) {
+    clearInterval(interval);
+    toast("Şəbəkə xətası");
+  }
+  e.target.value=""; // reset input
+}
+
+// ════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ════════════════════════════════════════════════════════
+document.addEventListener("keydown", e => {
+  if (e.key==="Escape") document.querySelectorAll(".overlay.open").forEach(o=>o.classList.remove("open"));
+});
+document.querySelectorAll(".overlay").forEach(o => o.addEventListener("click", e => { if(e.target===o) o.classList.remove("open"); }));
+</script>
+</body>
+</html>

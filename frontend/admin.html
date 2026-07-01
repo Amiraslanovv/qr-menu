@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="az">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — QR Menyu</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f5f7;
+      --white: #ffffff;
+      --surface: #f5f5f7;
+      --border: rgba(0,0,0,0.1);
+      --text: #1d1d1f;
+      --muted: #6e6e73;
+      --accent: #c8963e;
+      --accent-bg: rgba(200,150,62,0.1);
+      --green: #28a745;
+      --red: #dc3545;
+      --radius: 12px;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0;
+      width: 220px;
+      background: var(--white);
+      border-right: 0.5px solid var(--border);
+      display: flex; flex-direction: column;
+      z-index: 10;
+    }
+    .sidebar-logo {
+      padding: 22px 20px 16px;
+      border-bottom: 0.5px solid var(--border);
+    }
+    .sidebar-logo h2 { font-size: 16px; font-weight: 700; }
+    .sidebar-logo p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    .nav { flex: 1; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 13px; font-weight: 500;
+      color: var(--muted);
+      transition: all 0.15s;
+    }
+    .nav-item:hover { background: var(--bg); color: var(--text); }
+    .nav-item.active { background: var(--accent-bg); color: var(--accent); }
+    .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+    .sidebar-bottom {
+      padding: 12px 8px;
+      border-top: 0.5px solid var(--border);
+    }
+
+    /* ── Main ── */
+    .main { margin-left: 220px; min-height: 100vh; padding: 28px; }
+
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .page-header h1 { font-size: 22px; font-weight: 700; }
+
+    /* ── Stat cards ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .stat-card {
+      background: var(--white);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+    }
+    .stat-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .stat-value { font-size: 28px; font-weight: 700; }
+    .stat-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .stat-value.accent { color: var(--accent); }
+    .stat-value.green { color: var(--green); }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--white);
+      border: 0.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .card-title { font-size: 15px; font-weight: 600; }
+
+    /* ── Buttons ── */
+    .btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px; font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn:active { opacity: 0.7; }
+    .btn-primary { background: var(--accent); color: white; }
+    .btn-outline { background: transparent; border: 0.5px solid var(--border); color: var(--text); }
+    .btn-danger { background: #fee2e2; color: var(--red); }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left; padding: 8px 12px;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      color: var(--muted);
+      border-bottom: 0.5px solid var(--border);
+    }
+    td {
+      padding: 12px 12px;
+      border-bottom: 0.5px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--bg); }
+
+    /* ── Toggle ── */
+    .toggle {
+      position: relative; width: 36px; height: 20px;
+      display: inline-block; cursor: pointer;
+    }
+    .toggle input { display: none; }
+    .toggle-track {
+      position: absolute; inset: 0;
+      background: var(--border);
+      border-radius: 10px;
+      transition: background 0.2s;
+    }
+    .toggle input:checked + .toggle-track { background: var(--green); }
+    .toggle-thumb {
+      position: absolute; top: 2px; left: 2px;
+      width: 16px; height: 16px;
+      background: white;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+
+    /* ── Badge ── */
+    .pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 11px; font-weight: 500;
+    }
+    .pill-popular { background: rgba(255,149,0,0.15); color: #d97706; }
+    .pill-new { background: rgba(40,167,69,0.15); color: var(--green); }
+
+    /* ── QR section ── */
+    .qr-box {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 24px;
+      background: var(--bg);
+      border-radius: var(--radius);
+      gap: 12px;
+    }
+    .qr-placeholder {
+      width: 140px; height: 140px;
+      background: white;
+      border: 0.5px solid var(--border);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 64px;
+    }
+    .qr-url {
+      font-size: 12px; color: var(--muted);
+      font-family: monospace;
+    }
+
+    /* ── Chart bars (pure CSS) ── */
+    .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; }
+    .bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .bar {
+      width: 100%; border-radius: 4px 4px 0 0;
+      background: var(--accent);
+      opacity: 0.8;
+      transition: height 0.5s ease;
+    }
+    .bar-label { font-size: 10px; color: var(--muted); }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 14px; }
+    .form-label { font-size: 12px; font-weight: 500; color: var(--muted); margin-bottom: 5px; display: block; }
+    .form-input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 0.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      background: var(--white);
+      color: var(--text);
+      outline: none;
+    }
+    .form-input:focus { border-color: var(--accent); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 100;
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 90%; max-width: 440px;
+      transform: scale(0.95); transition: transform 0.2s;
+    }
+    .modal-overlay.open .modal { transform: scale(1); }
+    .modal-title { font-size: 16px; font-weight: 700; margin-bottom: 18px; }
+    .modal-footer { display: flex; gap: 8px; justify-content: flex-end; margin-top: 20px; }
+
+    /* ── Pages ── */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 20px; right: 20px;
+      background: #1d1d1f; color: white;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      z-index: 200;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <h2>🍽️ QR Menyu</h2>
+    <p id="resto-name">Kafe Şəhər</p>
+  </div>
+  <nav class="nav">
+    <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard', this)">
+      <span class="nav-icon">📊</span> İcmal
+    </div>
+    <div class="nav-item" data-page="menu" onclick="navigate('menu', this)">
+      <span class="nav-icon">📋</span> Menyu
+    </div>
+    <div class="nav-item" data-page="specials" onclick="navigate('specials', this)">
+      <span class="nav-icon">✨</span> Günün təklifi
+    </div>
+    <div class="nav-item" data-page="qr" onclick="navigate('qr', this)">
+      <span class="nav-icon">📱</span> QR Kod
+    </div>
+    <div class="nav-item" data-page="settings" onclick="navigate('settings', this)">
+      <span class="nav-icon">⚙️</span> Tənzimləmələr
+    </div>
+  </nav>
+  <div class="sidebar-bottom">
+    <div class="nav-item" onclick="previewMenu()">
+      <span class="nav-icon">👁️</span> Menyuya bax
+    </div>
+    <div class="nav-item" onclick="logout()">
+      <span class="nav-icon">🚪</span> Çıxış
+    </div>
+  </div>
+</aside>
+
+<!-- ── Main content ── -->
+<main class="main">
+
+  <!-- Dashboard -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <h1>İcmal</h1>
+      <span style="font-size:13px;color:var(--muted)" id="today-date"></span>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Bu ay QR Skan</div>
+        <div class="stat-value accent">247</div>
+        <div class="stat-sub">↑ 18% ötən aydan</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Bu gün skan</div>
+        <div class="stat-value">14</div>
+        <div class="stat-sub">Son skan: 14:32</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Menyu elementləri</div>
+        <div class="stat-value">16</div>
+        <div class="stat-sub">4 kateqoriya</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Aktiv təkliflər</div>
+        <div class="stat-value green">1</div>
+        <div class="stat-sub">Günün xüsusi</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Son 7 günün skanları</span>
+      </div>
+      <div class="bar-chart" id="bar-chart"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Tez əməliyyatlar</span>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="navigate('menu', document.querySelector('[data-page=menu]'))">+ Yeni element</button>
+        <button class="btn btn-outline" onclick="navigate('specials', document.querySelector('[data-page=specials]'))">Günün təklifini yenilə</button>
+        <button class="btn btn-outline" onclick="navigate('qr', document.querySelector('[data-page=qr]'))">QR kodu yüklə</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Menu management -->
+  <div class="page" id="page-menu">
+    <div class="page-header">
+      <h1>Menyu idarəsi</h1>
+      <button class="btn btn-primary" onclick="openAddModal()">+ Element əlavə et</button>
+    </div>
+
+    <div id="categories-container"></div>
+  </div>
+
+  <!-- Daily specials -->
+  <div class="page" id="page-specials">
+    <div class="page-header">
+      <h1>Günün xüsusi təklifi</h1>
+    </div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">Başlıq</label>
+        <input class="form-input" id="sp-title" value="Günün xüsusi: Kebab + Çay dəsti" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Təsvir</label>
+        <input class="form-input" id="sp-desc" value="Lülə kebab + 2 stəkan çay birlikdə" />
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label class="form-label">Əvvəlki qiymət (AZN)</label>
+          <input class="form-input" id="sp-old" value="11.30" type="number" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Endirimli qiymət (AZN)</label>
+          <input class="form-input" id="sp-new" value="9.00" type="number" step="0.01" />
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="saveSpecial()">Saxla</button>
+    </div>
+  </div>
+
+  <!-- QR Code -->
+  <div class="page" id="page-qr">
+    <div class="page-header"><h1>QR Kod</h1></div>
+    <div class="card" style="max-width:400px">
+      <div class="qr-box">
+        <div class="qr-placeholder">▦</div>
+        <div class="qr-url" id="qr-url"></div>
+        <p style="font-size:12px;color:var(--muted);text-align:center">QR kodu çap edib masanın üzərinə yapışdırın. Müştərilər skan edəndə menyu açılacaq.</p>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <a class="btn btn-primary" id="qr-download-link" href="/api/menu/kafe-seher/qr/" download="qr-menyu.svg">SVG Yüklə</a>
+        <button class="btn btn-outline" onclick="previewMenu()">Menyuya bax</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="page" id="page-settings">
+    <div class="page-header"><h1>Tənzimləmələr</h1></div>
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">Restoran adı</label>
+        <input class="form-input" value="Kafe Şəhər" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Telefon</label>
+        <input class="form-input" value="+994 50 000 00 00" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">WhatsApp</label>
+        <input class="form-input" value="+994500000000" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Ünvan</label>
+        <input class="form-input" value="Mingachevir şəh., Heydər Əliyev pr. 12" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">WiFi şifrəsi</label>
+        <input class="form-input" value="kafeSEHER2025" />
+      </div>
+      <button class="btn btn-primary" onclick="showToast('Saxlandı ✓')">Dəyişiklikləri saxla</button>
+    </div>
+  </div>
+
+</main>
+
+<!-- Add item modal -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-title">Yeni element əlavə et</div>
+    <div class="form-group">
+      <label class="form-label">Kateqoriya</label>
+      <select class="form-input" id="new-cat">
+        <option>İçkilər ☕</option>
+        <option>Yeməklər 🍽️</option>
+        <option>Salatlar 🥗</option>
+        <option>Desert 🍰</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Ad</label>
+      <input class="form-input" id="new-name" placeholder="məs. Türk qəhvəsi" />
+    </div>
+    <div class="form-group">
+      <label class="form-label">Təsvir</label>
+      <input class="form-input" id="new-desc" placeholder="Qısa açıqlama" />
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group">
+        <label class="form-label">Qiymət (AZN)</label>
+        <input class="form-input" id="new-price" type="number" step="0.01" placeholder="0.00" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Çəki/Həcm</label>
+        <input class="form-input" id="new-weight" placeholder="məs. 250q" />
+      </div>
+    </div>
+    <div style="display:flex;gap:16px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="new-popular"> Populyar
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="new-isnew"> Yeni
+      </label>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">Ləğv et</button>
+      <button class="btn btn-primary" onclick="addItem()">Əlavə et</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── State ─────────────────────────────────────────────────
+  let menuData = {
+    categories: [
+      {
+        id: 1, name: "İçkilər", icon: "☕",
+        items: [
+          { id: 1, name: "Türk qəhvəsi", price: "2.50", description: "Ənənəvi üsulla hazırlanmış", is_available: true, is_popular: true, is_new: false },
+          { id: 2, name: "Çay (stəkan)", price: "0.80", description: "Azərbaycan çayı, limonla", is_available: true, is_popular: false, is_new: false },
+          { id: 3, name: "Portağal şirəsi", price: "3.00", description: "Təzə sıxılmış", is_available: true, is_popular: false, is_new: true },
+          { id: 4, name: "Limonad", price: "2.00", description: "Ev hazırlanması", is_available: true, is_popular: false, is_new: false },
+          { id: 5, name: "Su (0.5L)", price: "0.50", description: "", is_available: true, is_popular: false, is_new: false },
+        ]
+      },
+      {
+        id: 2, name: "Yeməklər", icon: "🍽️",
+        items: [
+          { id: 6, name: "Plov", price: "7.00", description: "Ənənəvi Azərbaycan plovu", is_available: true, is_popular: true, is_new: false, weight_or_volume: "350q" },
+          { id: 7, name: "Dolma", price: "8.00", description: "Üzüm yarpağında ətli dolma", is_available: true, is_popular: false, is_new: false, weight_or_volume: "300q" },
+          { id: 8, name: "Kebab (lülə)", price: "9.00", description: "Soğan və pomidor ilə", is_available: true, is_popular: true, is_new: false, weight_or_volume: "250q" },
+          { id: 9, name: "Düşbərə", price: "5.00", description: "Ev hazırlanması", is_available: false, is_popular: false, is_new: false, weight_or_volume: "250ml" },
+        ]
+      },
+      {
+        id: 3, name: "Salatlar", icon: "🥗",
+        items: [
+          { id: 10, name: "Kənd salatı", price: "4.00", description: "Pomidor, xiyar, soğan", is_available: true, is_popular: false, is_new: false, weight_or_volume: "200q" },
+          { id: 11, name: "Çoban salatı", price: "4.50", description: "Əlavə pendir ilə", is_available: true, is_popular: false, is_new: false, weight_or_volume: "220q" },
+        ]
+      },
+      {
+        id: 4, name: "Desert", icon: "🍰",
+        items: [
+          { id: 12, name: "Paklava", price: "3.00", description: "Ev hazırlanması, qoz ilə", is_available: true, is_popular: true, is_new: false, weight_or_volume: "100q" },
+          { id: 13, name: "Şəkərbura", price: "2.50", description: "", is_available: true, is_popular: false, is_new: false, weight_or_volume: "80q" },
+          { id: 14, name: "Gündəlik tort", price: "4.00", description: "Hər gün fərqli növ", is_available: true, is_popular: false, is_new: true },
+        ]
+      },
+    ]
+  };
+
+  let nextId = 100;
+
+  // ── Navigation ────────────────────────────────────────────
+  function navigate(page, el) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    document.getElementById(`page-${page}`).classList.add("active");
+    el.classList.add("active");
+    if (page === "menu") renderMenuPage();
+    if (page === "dashboard") renderChart();
+    if (page === "qr") renderQR();
+  }
+
+  // ── Render menu page ──────────────────────────────────────
+  function renderMenuPage() {
+    const container = document.getElementById("categories-container");
+    container.innerHTML = menuData.categories.map(cat => `
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">${cat.icon} ${cat.name}</span>
+          <span style="font-size:12px;color:var(--muted)">${cat.items.length} element</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Ad</th>
+              <th>Qiymət</th>
+              <th>Etiketlər</th>
+              <th>Mövcuddur</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${cat.items.map(item => `
+              <tr>
+                <td>
+                  <div style="font-weight:500">${item.name}</div>
+                  ${item.description ? `<div style="font-size:12px;color:var(--muted)">${item.description}</div>` : ""}
+                </td>
+                <td style="font-weight:600;color:var(--accent)">${parseFloat(item.price).toFixed(2)} AZN</td>
+                <td>
+                  ${item.is_popular ? `<span class="pill pill-popular">🔥 Populyar</span> ` : ""}
+                  ${item.is_new ? `<span class="pill pill-new">✨ Yeni</span>` : ""}
+                </td>
+                <td>
+                  <label class="toggle" onclick="toggleItem(${item.id})">
+                    <input type="checkbox" ${item.is_available ? "checked" : ""}>
+                    <div class="toggle-track"></div>
+                    <div class="toggle-thumb"></div>
+                  </label>
+                </td>
+                <td>
+                  <button class="btn btn-danger btn-sm" onclick="deleteItem(${cat.id}, ${item.id})">Sil</button>
+                </td>
+              </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>`).join("");
+  }
+
+  function toggleItem(itemId) {
+    menuData.categories.forEach(cat => {
+      cat.items.forEach(item => {
+        if (item.id === itemId) {
+          item.is_available = !item.is_available;
+          showToast(item.is_available ? `${item.name} aktiv edildi ✓` : `${item.name} deaktiv edildi`);
+        }
+      });
+    });
+    setTimeout(renderMenuPage, 100);
+  }
+
+  function deleteItem(catId, itemId) {
+    const cat = menuData.categories.find(c => c.id === catId);
+    if (!cat) return;
+    const item = cat.items.find(i => i.id === itemId);
+    if (!item) return;
+    if (!confirm(`"${item.name}" silinsin?`)) return;
+    cat.items = cat.items.filter(i => i.id !== itemId);
+    renderMenuPage();
+    showToast("Element silindi");
+  }
+
+  // ── Add item modal ────────────────────────────────────────
+  function openAddModal() {
+    document.getElementById("add-modal").classList.add("open");
+  }
+  function closeModal() {
+    document.getElementById("add-modal").classList.remove("open");
+  }
+  function addItem() {
+    const name = document.getElementById("new-name").value.trim();
+    const price = document.getElementById("new-price").value;
+    if (!name || !price) { showToast("Ad və qiymət vacibdir!"); return; }
+
+    const catIdx = document.getElementById("new-cat").selectedIndex;
+    const cat = menuData.categories[catIdx];
+    cat.items.push({
+      id: nextId++,
+      name,
+      price,
+      description: document.getElementById("new-desc").value,
+      weight_or_volume: document.getElementById("new-weight").value,
+      is_available: true,
+      is_popular: document.getElementById("new-popular").checked,
+      is_new: document.getElementById("new-isnew").checked,
+    });
+
+    closeModal();
+    renderMenuPage();
+    showToast(`${name} əlavə edildi ✓`);
+    document.getElementById("new-name").value = "";
+    document.getElementById("new-price").value = "";
+    document.getElementById("new-desc").value = "";
+    document.getElementById("new-weight").value = "";
+  }
+
+  // ── Chart ─────────────────────────────────────────────────
+  function renderChart() {
+    const days = ["B.e.", "Ç.a.", "Çər.", "C.a.", "Cüm.", "Şnb.", "Baz."];
+    const vals = [22, 35, 28, 41, 38, 53, 30];
+    const max = Math.max(...vals);
+    document.getElementById("bar-chart").innerHTML = vals.map((v, i) => `
+      <div class="bar-wrap">
+        <div style="font-size:10px;color:var(--muted);margin-bottom:2px">${v}</div>
+        <div class="bar" style="height:${(v/max)*64}px"></div>
+        <div class="bar-label">${days[i]}</div>
+      </div>`).join("");
+  }
+
+  // ── QR ───────────────────────────────────────────────────
+  function renderQR() {
+    const slug = "kafe-seher";
+    const url = `${window.location.origin}/menu/${slug}/`;
+    document.getElementById("qr-url").textContent = url;
+    document.getElementById("qr-download-link").href = `/api/menu/${slug}/qr/`;
+  }
+
+  // ── Specials ──────────────────────────────────────────────
+  function saveSpecial() { showToast("Günün təklifi saxlandı ✓"); }
+
+  // ── Toast ─────────────────────────────────────────────────
+  function showToast(msg) {
+    const t = document.getElementById("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    setTimeout(() => t.classList.remove("show"), 2500);
+  }
+
+  function previewMenu() { window.open("menu.html", "_blank"); }
+  function logout() { if (confirm("Çıxmaq istəyirsiniz?")) showToast("Çıxış edildi"); }
+
+  // ── Init ─────────────────────────────────────────────────
+  document.getElementById("today-date").textContent =
+    new Date().toLocaleDateString("az-AZ", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  renderChart();
+  renderQR();
+</script>
+</body>
+</html>

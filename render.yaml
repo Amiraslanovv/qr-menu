@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: qr-menyu-backend
+    env: python
+    plan: free
+    buildCommand: >
+      cd backend &&
+      pip install -r requirements.txt &&
+      python manage.py migrate --noinput &&
+      python manage.py collectstatic --noinput
+    startCommand: cd backend && gunicorn config.wsgi:application --workers 2 --timeout 60
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: ".onrender.com"
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://your-frontend.onrender.com"
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_NUMBER
+        sync: false
