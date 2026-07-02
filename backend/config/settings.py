@@ -61,7 +61,21 @@ else:
         "NAME"  : BASE_DIR / "db.sqlite3",
     }}
 
-# ── REST Framework ────────────────────────────────────────────
+# ── CORS ─────────────────────────────────────────────────────
+CORS_ALLOWED_ORIGINS = os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:3000 http://127.0.0.1:5500 http://localhost:5500"
+).split()
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = True  # production-da False et
+
+# CSRF
+CSRF_TRUSTED_ORIGINS = [
+    "https://qr-menu-ffqs.onrender.com",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": [
         "rest_framework.authentication.TokenAuthentication",
@@ -71,13 +85,6 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated",
     ],
 }
-
-# ── CORS ─────────────────────────────────────────────────────
-CORS_ALLOWED_ORIGINS = os.environ.get(
-    "CORS_ALLOWED_ORIGINS",
-    "http://localhost:3000 http://127.0.0.1:5500 http://localhost:5500"
-).split()
-CORS_ALLOW_CREDENTIALS = True
 
 # ── Cloudinary ───────────────────────────────────────────────
 import cloudinary

@@ -3,6 +3,7 @@ from django.shortcuts     import get_object_or_404
 from django.contrib.auth.models import User
 from django.db.models     import Count
 from django.db.models.functions import TruncDate
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework import viewsets, status
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
@@ -35,6 +36,7 @@ def get_lang(request):
 #  AUTH
 # ═══════════════════════════════════════════════════════════════
 
+@csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def owner_login(request):
