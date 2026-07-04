@@ -48,7 +48,7 @@ def owner_login(request):
     from django.contrib.auth import authenticate
     username = request.data.get("username", "").strip()
     password = request.data.get("password", "")
-    user = authenticate(username=username, password=password)
+    user = authenticate(request=request, username=username, password=password)
     if not user:
         return Response({"detail": "İstifadəçi adı və ya şifrə yanlışdır."}, status=400)
     token, _ = Token.objects.get_or_create(user=user)
