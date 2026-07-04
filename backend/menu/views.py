@@ -577,9 +577,11 @@ def table_qr_svg(request, table_id):
     img = qr.make_image()
     buffer = BytesIO()
     img.save(buffer)
-    buffer.seek(0)
-    return HttpResponse(buffer.getvalue(), content_type="image/svg+xml",
-                        headers={"Content-Disposition": f'attachment; filename="masa-{table.number}.svg"'})
+    svg_content = buffer.getvalue()
+    response = HttpResponse(svg_content, content_type="image/svg+xml")
+    response["Content-Disposition"] = f'attachment; filename="masa-{table.number}.svg"'
+    response["Access-Control-Allow-Origin"] = "*"
+    return response
 
 
 # ═══════════════════════════════════════════════════════════════

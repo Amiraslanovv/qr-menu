@@ -622,7 +622,7 @@ async function loadTables() {
       <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Gizli kod:</div>
       <div class="masa-code">${t.secret_code}</div>
       <div class="masa-actions">
-        <a class="btn btn-primary btn-sm" href="${API}/owner/tables/${t.id}/qr/" download="masa-${t.number}.svg">QR</a>
+        <button class="btn btn-primary btn-sm" onclick="downloadTableQR(${t.id},${t.number})">⬇ QR</button>
         <button class="btn btn-outline btn-sm" onclick="regenCode(${t.id})">🔄 Kodu yenilə</button>
         <button class="btn btn-danger btn-sm" onclick="deleteTable(${t.id})">Sil</button>
       </div>
@@ -644,7 +644,23 @@ async function saveTable() {
   } else toast("Xəta: " + JSON.stringify(data));
 }
 
-async function regenCode(tableId) {
+async function downloadTableQR(tableId, tableNum) {
+  try {
+    const res = await fetch(`${API}/owner/tables/${tableId}/qr/`, {
+      headers: { "Authorization": `Token ${token}` }
+    });
+    if (!res.ok) { toast("QR yükləmə xətası"); return; }
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `masa-${tableNum}.svg`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    toast("QR yükləmə xətası");
+  }
+}
   const data = await api("POST",`/owner/tables/${tableId}/regen/`);
   if (data?.secret_code) { toast(`Yeni kod: ${data.secret_code}`); loadTables(); }
 }
@@ -671,7 +687,7 @@ async function loadQRPage() {
       <td><strong>${t.number}</strong></td>
       <td>${t.label||"—"}</td>
       <td><code style="background:var(--bg);padding:2px 6px;border-radius:4px">${t.secret_code}</code></td>
-      <td><a class="btn btn-primary btn-sm" href="${API}/owner/tables/${t.id}/qr/" download="masa-${t.number}.svg">SVG Yüklə</a></td>
+      <td><button class="btn btn-primary btn-sm" onclick="downloadTableQR(${t.id},${t.number})">⬇ SVG Yüklə</button></td>
     </tr>`).join("")}
   </tbody></table>`;
 }
