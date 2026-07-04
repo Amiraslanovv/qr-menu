@@ -154,3 +154,90 @@ class MenuView(models.Model):
     class Meta:
         verbose_name = "Baxış"
         verbose_name_plural = "Baxışlar"
+
+
+class Table(models.Model):
+    """Restoran masaları — hər masanın öz QR kodu var"""
+    restaurant   = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="tables")
+    number       = models.PositiveIntegerField(verbose_name="Masa nömrəsi")
+    label        = models.CharField(max_length=50, blank=True, verbose_name="Ad (məs: VIP, Terasa 1)")
+    secret_code  = models.CharField(max_length=8, verbose_name="Gizli kod (ofisant dəyişir)")
+    is_active    = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Masa"
+        verbose_name_plural = "Masalar"
+        unique_together = ("restaurant", "number")
+        ordering = ["number"]
+
+    def __str__(self):
+        return f"{self.restaurant.name_az} — Masa {self.number}"
+
+    def regenerate_code(self):
+        import random, string
+        self.secret_code = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        self.save()
+
+
+class Order(models.Model):
+    """Müştəri sifarişi"""
+    STATUS_CHOICES = [
+        ("pending",   "Gözləyir"),
+        ("confirmed", "Təsdiqləndi"),
+        ("preparing", "Hazırlanır"),
+        ("ready",     "Hazırdır"),
+        ("paid",      "Ödənilib"),
+        ("cancelled", "Ləğv edildi"),
+    ]
+    PAYMENT_METHOD_CHOICES = [
+        ("cash",       "Nağd"),
+        ("table",      "Masada kart"),
+        ("abb_pay",    "ABB Pay"),
+        ("apple_pay",  "Apple Pay"),
+        ("google_pay", "Google Pay"),
+    ]
+
+    restaurant     = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="orders")
+    table          = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
+    table_number   = models.PositiveIntegerField(null=True, blank=True, verbose_name="Masa nömrəsi")
+    customer_phone = models.CharField(max_length=30, blank=True, verbose_name="Telefon")
+    customer_name  = models.CharField(max_length=100, blank=True, verbose_name="Ad")
+    items_json     = models.JSONField(default=list, verbose_name="Sifariş elementləri")
+    note           = models.TextField(blank=True, verbose_name="Qeyd")
+    total_price    = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    status         = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    payment_method = models.CharField(max_length=20, choices=PAYMENT_METHOD_CHOICES, default="cash")
+    payment_status = models.CharField(max_length=20, default="unpaid")
+    abb_transaction_id = models.CharField(max_length=100, blank=True)
+    scan_time      = models.DateTimeField(null=True, blank=True, verbose_name="QR skan vaxtı")
+    is_notified    = models.BooleanField(default=False)
+    created_at     = models.DateTimeField(auto_now_add=True)
+    updated_at     = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Sifariş"
+        verbose_name_plural = "Sifarişlər"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.restaurant.name_az} — Masa {self.table_number} — {self.created_at:%d.%m %H:%M}"
+
+
+class QRScan(models.Model):
+    """QR skan qeydi — vaxt limiti üçün"""
+    restaurant  = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="qr_scans")
+    table       = models.ForeignKey(Table, on_delete=models.SET_NULL, null=True, blank=True)
+    table_number = models.PositiveIntegerField(null=True, blank=True)
+    session_id  = models.CharField(max_length=64, unique=True)
+    scanned_at  = models.DateTimeField(auto_now_add=True)
+    expires_at  = models.DateTimeField()
+    user_agent  = models.TextField(blank=True)
+    lang        = models.CharField(max_length=5, default="az")
+
+    class Meta:
+        verbose_name = "QR Skan"
+        verbose_name_plural = "QR Skanlar"
+
+    def is_valid(self):
+        from django.utils import timezone
+        return timezone.now() < self.expires_at

@@ -91,3 +91,57 @@ class WhatsAppOrderAdmin(admin.ModelAdmin):
     list_display  = ("restaurant", "customer_phone", "created_at", "is_notified")
     list_filter   = ("restaurant", "is_notified")
     readonly_fields = ("restaurant", "customer_phone", "message", "created_at")
+
+
+from .models import Table, Order, QRScan
+
+
+class TableInline(admin.TabularInline):
+    model  = Table
+    extra  = 1
+    fields = ("number", "label", "secret_code", "is_active")
+    readonly_fields = ("secret_code",)
+
+
+@admin.register(Table)
+class TableAdmin(admin.ModelAdmin):
+    list_display = ("number", "label", "restaurant", "secret_code", "is_active")
+    list_filter  = ("restaurant", "is_active")
+    actions      = ["regenerate_codes"]
+
+    def regenerate_codes(self, request, queryset):
+        for table in queryset:
+            table.regenerate_code()
+        self.message_user(request, f"{queryset.count()} masanın kodu yeniləndi.")
+    regenerate_codes.short_description = "Seçilmiş masaların kodunu yenilə"
+
+
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display  = ("id", "restaurant", "table_number", "customer_name",
+                     "total_price", "status", "payment_method", "payment_status", "created_at")
+    list_filter   = ("restaurant", "status", "payment_method", "payment_status")
+    list_editable = ("status",)
+    readonly_fields = ("created_at", "updated_at", "items_json", "abb_transaction_id")
+    search_fields = ("customer_name", "customer_phone")
+
+    fieldsets = (
+        ("Sifariş məlumatları", {
+            "fields": ("restaurant", "table", "table_number", "customer_name",
+                       "customer_phone", "items_json", "note", "total_price")
+        }),
+        ("Status", {
+            "fields": ("status", "payment_method", "payment_status", "abb_transaction_id")
+        }),
+        ("Tarixlər", {
+            "fields": ("scan_time", "created_at", "updated_at"),
+            "classes": ("collapse",),
+        }),
+    )
+
+
+@admin.register(QRScan)
+class QRScanAdmin(admin.ModelAdmin):
+    list_display = ("restaurant", "table_number", "scanned_at", "expires_at", "lang")
+    list_filter  = ("restaurant", "lang")
+    readonly_fields = ("session_id", "scanned_at", "expires_at")

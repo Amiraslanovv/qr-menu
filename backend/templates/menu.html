@@ -1,563 +1,675 @@
 <!DOCTYPE html>
 <html lang="az">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <title>Menyu</title>
-  <meta name="theme-color" content="#1a1a1a" />
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
+<title>Menyu</title>
+<meta name="theme-color" content="#0f0f0f"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f0f;--surface:#1c1c1e;--surface2:#2c2c2e;
+  --border:rgba(255,255,255,.08);--text:#f5f5f5;--muted:#8e8e93;
+  --accent:#d4a853;--accent-dim:rgba(212,168,83,.15);
+  --green:#34c759;--red:#ff453a;--radius:14px;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;min-height:100vh}
 
-    :root {
-      --bg: #0f0f0f;
-      --surface: #1c1c1e;
-      --surface2: #2c2c2e;
-      --border: rgba(255,255,255,0.08);
-      --text: #f5f5f5;
-      --muted: #8e8e93;
-      --accent: #d4a853;
-      --accent-dim: rgba(212,168,83,0.15);
-      --green: #34c759;
-      --red: #ff453a;
-      --radius: 14px;
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-    }
+/* Loading */
+#loading{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:100;transition:opacity .4s}
+#loading.hidden{opacity:0;pointer-events:none}
+.spinner{width:36px;height:36px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      min-height: 100vh;
-      overscroll-behavior: none;
-    }
+/* Timer bar */
+#timer-bar{position:fixed;top:0;left:0;right:0;height:3px;background:var(--accent);z-index:50;transition:width 1s linear;transform-origin:left}
+#timer-bar.warning{background:var(--red)}
 
-    /* ── Loading screen ── */
-    #loading {
-      position: fixed; inset: 0;
-      background: var(--bg);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 16px; z-index: 100;
-      transition: opacity 0.4s;
-    }
-    #loading.hidden { opacity: 0; pointer-events: none; }
-    .spinner {
-      width: 36px; height: 36px;
-      border: 2.5px solid var(--border);
-      border-top-color: var(--accent);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+/* Cover */
+.cover{position:relative;height:200px;background:var(--surface);overflow:hidden}
+.cover-img{width:100%;height:100%;object-fit:cover;opacity:.6}
+.cover-gradient{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(15,15,15,.1) 0%,rgba(15,15,15,.85) 100%)}
+.cover-info{position:absolute;bottom:0;left:0;right:0;padding:16px 16px 12px;display:flex;align-items:flex-end;gap:12px}
+.logo-wrap{width:56px;height:56px;flex-shrink:0;border-radius:14px;background:var(--surface2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;overflow:hidden}
+.logo-wrap img{width:100%;height:100%;object-fit:cover}
+.cover-text h1{font-size:20px;font-weight:700;line-height:1.2}
+.cover-text p{font-size:12px;color:var(--muted);margin-top:2px}
 
-    /* ── Cover ── */
-    .cover {
-      position: relative;
-      height: 220px;
-      background: var(--surface);
-      overflow: hidden;
-    }
-    .cover-img {
-      width: 100%; height: 100%;
-      object-fit: cover;
-      opacity: 0.6;
-    }
-    .cover-gradient {
-      position: absolute; inset: 0;
-      background: linear-gradient(to bottom, rgba(15,15,15,0.1) 0%, rgba(15,15,15,0.85) 100%);
-    }
-    .cover-info {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      padding: 20px 20px 16px;
-      display: flex; align-items: flex-end; gap: 14px;
-    }
-    .logo-wrap {
-      width: 64px; height: 64px; flex-shrink: 0;
-      border-radius: 16px;
-      background: var(--surface2);
-      border: 2px solid var(--border);
-      overflow: hidden;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px;
-    }
-    .logo-wrap img { width: 100%; height: 100%; object-fit: cover; }
-    .cover-text h1 { font-size: 22px; font-weight: 700; line-height: 1.2; }
-    .cover-text p { font-size: 13px; color: var(--muted); margin-top: 3px; }
+/* Masa badge */
+.masa-badge{display:inline-flex;align-items:center;gap:5px;background:var(--accent-dim);border:.5px solid rgba(212,168,83,.3);color:var(--accent);padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;margin-top:6px}
 
-    /* ── Quick actions ── */
-    .quick-actions {
-      display: flex; gap: 8px;
-      padding: 14px 16px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .quick-actions::-webkit-scrollbar { display: none; }
-    .action-btn {
-      flex-shrink: 0;
-      display: flex; align-items: center; gap: 6px;
-      padding: 8px 14px;
-      border-radius: 20px;
-      background: var(--surface);
-      border: 0.5px solid var(--border);
-      color: var(--text);
-      font-size: 13px;
-      font-weight: 500;
-      text-decoration: none;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: background 0.15s;
-    }
-    .action-btn:active { background: var(--surface2); }
-    .action-btn .icon { font-size: 15px; }
-    .action-btn.primary {
-      background: var(--accent-dim);
-      border-color: rgba(212,168,83,0.3);
-      color: var(--accent);
-    }
+/* Quick actions */
+.quick-actions{display:flex;gap:8px;padding:12px 14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.quick-actions::-webkit-scrollbar{display:none}
+.action-btn{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;background:var(--surface);border:.5px solid var(--border);color:var(--text);font-size:13px;font-weight:500;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .15s}
+.action-btn.primary{background:var(--accent-dim);border-color:rgba(212,168,83,.3);color:var(--accent)}
+.action-btn:active{opacity:.7}
 
-    /* ── Special offer banner ── */
-    .special-banner {
-      margin: 0 16px 4px;
-      padding: 12px 14px;
-      background: var(--accent-dim);
-      border: 0.5px solid rgba(212,168,83,0.25);
-      border-radius: var(--radius);
-    }
-    .special-banner .label {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 4px;
-    }
-    .special-banner h3 { font-size: 15px; font-weight: 600; }
-    .special-banner .prices {
-      display: flex; align-items: center; gap: 8px;
-      margin-top: 6px;
-    }
-    .special-banner .old-price {
-      font-size: 13px;
-      color: var(--muted);
-      text-decoration: line-through;
-    }
-    .special-banner .new-price {
-      font-size: 17px; font-weight: 700;
-      color: var(--accent);
-    }
+/* Special banner */
+.special-banner{margin:0 14px 4px;padding:12px 14px;background:var(--accent-dim);border:.5px solid rgba(212,168,83,.25);border-radius:var(--radius)}
+.special-banner .lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px}
+.special-banner h3{font-size:14px;font-weight:600}
+.special-prices{display:flex;align-items:center;gap:8px;margin-top:5px}
+.old-price{font-size:12px;color:var(--muted);text-decoration:line-through}
+.new-price{font-size:16px;font-weight:700;color:var(--accent)}
 
-    /* ── Category tabs ── */
-    .tabs-wrap {
-      position: sticky; top: 0; z-index: 10;
-      background: rgba(15,15,15,0.92);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 0.5px solid var(--border);
-    }
-    .tabs {
-      display: flex; gap: 2px;
-      padding: 10px 12px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .tabs::-webkit-scrollbar { display: none; }
-    .tab {
-      flex-shrink: 0;
-      padding: 7px 14px;
-      border-radius: 20px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--muted);
-      cursor: pointer;
-      transition: all 0.15s;
-      white-space: nowrap;
-      border: 0.5px solid transparent;
-    }
-    .tab.active {
-      background: var(--accent-dim);
-      border-color: rgba(212,168,83,0.3);
-      color: var(--accent);
-    }
+/* Tabs */
+.tabs-wrap{position:sticky;top:0;z-index:10;background:rgba(15,15,15,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:.5px solid var(--border)}
+.tabs{display:flex;gap:2px;padding:8px 10px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:6px 13px;border-radius:20px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;border:.5px solid transparent}
+.tab.active{background:var(--accent-dim);border-color:rgba(212,168,83,.3);color:var(--accent)}
 
-    /* ── Menu section ── */
-    .section { padding: 20px 16px 4px; }
-    .section-title {
-      font-size: 19px; font-weight: 700;
-      margin-bottom: 12px;
-      display: flex; align-items: center; gap: 8px;
-    }
+/* Menu section */
+.section{padding:18px 14px 4px}
+.section-title{font-size:18px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:7px}
 
-    /* ── Menu item card ── */
-    .item-card {
-      display: flex; gap: 12px;
-      padding: 14px 0;
-      border-bottom: 0.5px solid var(--border);
-      position: relative;
-    }
-    .item-card:last-child { border-bottom: none; }
-    .item-img {
-      width: 80px; height: 80px; flex-shrink: 0;
-      border-radius: 10px;
-      object-fit: cover;
-      background: var(--surface2);
-    }
-    .item-img-placeholder {
-      width: 80px; height: 80px; flex-shrink: 0;
-      border-radius: 10px;
-      background: var(--surface2);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px;
-    }
-    .item-body { flex: 1; min-width: 0; }
-    .item-badges {
-      display: flex; gap: 4px; flex-wrap: wrap;
-      margin-bottom: 4px;
-    }
-    .badge {
-      font-size: 10px; font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 4px;
-      letter-spacing: 0.03em;
-    }
-    .badge-popular { background: rgba(255,149,0,0.2); color: #ff9500; }
-    .badge-new { background: rgba(48,209,88,0.2); color: #30d158; }
-    .badge-unavailable { background: rgba(255,69,58,0.15); color: var(--red); }
-    .item-name {
-      font-size: 15px; font-weight: 600;
-      line-height: 1.3;
-    }
-    .item-name.unavailable { opacity: 0.45; }
-    .item-desc {
-      font-size: 12px; color: var(--muted);
-      margin-top: 3px; line-height: 1.4;
-    }
-    .item-meta {
-      display: flex; align-items: center; justify-content: space-between;
-      margin-top: 8px;
-    }
-    .item-price {
-      font-size: 16px; font-weight: 700;
-      color: var(--accent);
-    }
-    .item-weight {
-      font-size: 11px; color: var(--muted);
-      margin-top: 1px;
-    }
+/* Item card */
+.item-card{display:flex;gap:10px;padding:12px 0;border-bottom:.5px solid var(--border);cursor:pointer;transition:opacity .15s}
+.item-card:active{opacity:.7}
+.item-card:last-child{border-bottom:none}
+.item-img{width:76px;height:76px;flex-shrink:0;border-radius:10px;object-fit:cover;background:var(--surface2)}
+.item-img-ph{width:76px;height:76px;flex-shrink:0;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:26px}
+.item-body{flex:1;min-width:0}
+.item-badges{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:3px}
+.badge{font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px}
+.badge-popular{background:rgba(255,149,0,.2);color:#ff9500}
+.badge-new{background:rgba(52,199,89,.2);color:var(--green)}
+.badge-unavailable{background:rgba(255,69,58,.15);color:var(--red)}
+.item-name{font-size:14px;font-weight:600;line-height:1.3}
+.item-name.unavailable{opacity:.4}
+.item-desc{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.4}
+.item-meta{display:flex;align-items:center;justify-content:space-between;margin-top:7px}
+.item-price{font-size:15px;font-weight:700;color:var(--accent)}
+.item-weight{font-size:11px;color:var(--muted);margin-top:1px}
+.add-btn{width:30px;height:30px;border-radius:50%;background:var(--accent);border:none;color:#000;font-size:18px;font-weight:700;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.add-btn:disabled{opacity:.4;cursor:default}
 
-    /* ── WiFi card ── */
-    .wifi-card {
-      margin: 16px 16px 0;
-      padding: 14px;
-      background: var(--surface);
-      border: 0.5px solid var(--border);
-      border-radius: var(--radius);
-      display: flex; align-items: center; gap: 12px;
-    }
-    .wifi-icon { font-size: 22px; }
-    .wifi-label { font-size: 11px; color: var(--muted); }
-    .wifi-pass { font-size: 15px; font-weight: 600; font-family: monospace; letter-spacing: 0.05em; }
-    .wifi-copy {
-      margin-left: auto;
-      padding: 6px 12px;
-      border-radius: 8px;
-      background: var(--surface2);
-      border: 0.5px solid var(--border);
-      color: var(--text);
-      font-size: 12px;
-      cursor: pointer;
-    }
-    .wifi-copy:active { opacity: 0.7; }
+/* Cart */
+#cart-bar{position:fixed;bottom:calc(16px + var(--safe-bottom));left:14px;right:14px;background:var(--accent);border-radius:14px;padding:14px 16px;display:none;align-items:center;justify-content:space-between;z-index:30;box-shadow:0 8px 32px rgba(0,0,0,.4);cursor:pointer}
+#cart-bar.show{display:flex}
+#cart-bar .cart-label{font-size:15px;font-weight:700;color:#000}
+#cart-bar .cart-total{font-size:15px;font-weight:700;color:#000}
 
-    /* ── Footer ── */
-    .footer {
-      padding: 28px 16px calc(20px + var(--safe-bottom));
-      text-align: center;
-    }
-    .footer p { font-size: 12px; color: var(--muted); }
-    .footer a { color: var(--accent); text-decoration: none; }
+/* Cart drawer */
+#cart-drawer{position:fixed;inset:0;z-index:40;display:none}
+#cart-drawer.open{display:block}
+#cart-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5)}
+#cart-panel{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + var(--safe-bottom));max-height:90vh;overflow-y:auto}
+.cart-handle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.cart-title{font-size:18px;font-weight:700;margin-bottom:14px}
+.cart-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:.5px solid var(--border)}
+.cart-item:last-child{border-bottom:none}
+.cart-item-name{flex:1;font-size:14px;font-weight:500}
+.cart-item-price{font-size:13px;color:var(--muted);margin-top:2px}
+.qty-ctrl{display:flex;align-items:center;gap:8px}
+.qty-btn{width:26px;height:26px;border-radius:50%;background:var(--surface2);border:.5px solid var(--border);color:var(--text);font-size:15px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.qty-num{font-size:14px;font-weight:600;min-width:16px;text-align:center}
+.cart-total-row{display:flex;justify-content:space-between;padding:14px 0 0;font-size:16px;font-weight:700;margin-top:8px}
 
-    /* ── Toast ── */
-    #toast {
-      position: fixed; bottom: calc(20px + var(--safe-bottom)); left: 50%;
-      transform: translateX(-50%) translateY(80px);
-      background: var(--surface2);
-      border: 0.5px solid var(--border);
-      padding: 10px 18px;
-      border-radius: 24px;
-      font-size: 13px;
-      font-weight: 500;
-      z-index: 200;
-      transition: transform 0.3s cubic-bezier(.34,1.56,.64,1);
-      white-space: nowrap;
-    }
-    #toast.show { transform: translateX(-50%) translateY(0); }
-  </style>
+/* Order form */
+.order-form{margin-top:14px;padding-top:14px;border-top:.5px solid var(--border)}
+.form-group{margin-bottom:12px}
+.form-label{font-size:12px;font-weight:500;color:var(--muted);margin-bottom:5px;display:block}
+.form-input{width:100%;padding:10px 12px;border:.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface2);color:var(--text);outline:none}
+.form-input:focus{border-color:var(--accent)}
+.payment-options{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.pay-opt{padding:10px;border-radius:10px;border:.5px solid var(--border);background:var(--surface2);text-align:center;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s}
+.pay-opt.selected{background:var(--accent-dim);border-color:rgba(212,168,83,.4);color:var(--accent)}
+.pay-opt .pay-icon{font-size:20px;margin-bottom:4px}
+.btn-order{width:100%;padding:14px;border-radius:12px;background:var(--accent);border:none;color:#000;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px}
+.btn-order:disabled{opacity:.5;cursor:default}
+
+/* WiFi */
+.wifi-card{margin:14px 14px 0;padding:12px;background:var(--surface);border:.5px solid var(--border);border-radius:var(--radius);display:flex;align-items:center;gap:10px}
+.wifi-copy{margin-left:auto;padding:5px 11px;border-radius:7px;background:var(--surface2);border:.5px solid var(--border);color:var(--text);font-size:12px;cursor:pointer}
+
+/* Footer */
+.footer{padding:24px 14px calc(100px + var(--safe-bottom));text-align:center}
+.footer p{font-size:11px;color:var(--muted)}
+
+/* Timeout overlay */
+#timeout-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px;text-align:center}
+#timeout-overlay.show{display:flex}
+#timeout-overlay h2{font-size:22px;font-weight:700;color:var(--red)}
+#timeout-overlay p{font-size:14px;color:var(--muted);max-width:280px}
+#timeout-overlay button{padding:12px 28px;border-radius:12px;background:var(--accent);border:none;color:#000;font-size:15px;font-weight:700;cursor:pointer}
+
+/* Lang selector */
+.lang-selector{display:flex;gap:6px;padding:8px 14px 0}
+.lang-btn{padding:4px 10px;border-radius:20px;border:.5px solid var(--border);background:none;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer}
+.lang-btn.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(212,168,83,.3)}
+
+/* Toast */
+#toast{position:fixed;bottom:calc(90px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:.5px solid var(--border);padding:10px 18px;border-radius:24px;font-size:13px;font-weight:500;z-index:200;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+/* Success screen */
+#success-screen{position:fixed;inset:0;background:var(--bg);z-index:70;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center}
+#success-screen.show{display:flex}
+.success-icon{font-size:64px}
+</style>
 </head>
 <body>
 
-<div id="loading">
-  <div class="spinner"></div>
-  <p style="font-size:13px;color:#8e8e93">Menyu yüklənir...</p>
-</div>
+<div id="loading"><div class="spinner"></div><p style="font-size:13px;color:var(--muted)" id="loading-text">Yüklənir...</p></div>
+<div id="timer-bar"></div>
 
 <div id="app" style="display:none"></div>
+
+<!-- Cart bar -->
+<div id="cart-bar" onclick="openCart()">
+  <span class="cart-label" id="cart-label">🛒 0 element</span>
+  <span class="cart-total" id="cart-total-bar">0.00 AZN</span>
+</div>
+
+<!-- Cart drawer -->
+<div id="cart-drawer">
+  <div id="cart-overlay" onclick="closeCart()"></div>
+  <div id="cart-panel">
+    <div class="cart-handle"></div>
+    <div class="cart-title" id="cart-title">Sifariş</div>
+    <div id="cart-items"></div>
+    <div class="cart-total-row">
+      <span id="ct-label">Cəmi</span>
+      <span id="cart-grand-total">0.00 AZN</span>
+    </div>
+    <div class="order-form">
+      <div class="form-group">
+        <label class="form-label" id="lbl-name">Adınız</label>
+        <input class="form-input" id="cust-name" placeholder="Anar"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="lbl-phone">WhatsApp nömrəsi (bildiriş üçün)</label>
+        <input class="form-input" id="cust-phone" type="tel" placeholder="+994 50 ..."/>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="lbl-note">Qeyd</label>
+        <input class="form-input" id="cust-note" placeholder="Az duzlu, allergiya və s."/>
+      </div>
+      <div class="form-label" id="lbl-payment" style="margin-bottom:8px">Ödəniş üsulu</div>
+      <div class="payment-options" id="payment-options">
+        <div class="pay-opt selected" data-method="cash" onclick="selectPayment(this)">
+          <div class="pay-icon">💵</div><div id="pm-cash">Nağd</div>
+        </div>
+        <div class="pay-opt" data-method="table" onclick="selectPayment(this)">
+          <div class="pay-icon">💳</div><div id="pm-table">Masada kart</div>
+        </div>
+        <div class="pay-opt" data-method="abb_pay" onclick="selectPayment(this)">
+          <div class="pay-icon">📱</div><div>ABB Pay</div>
+        </div>
+        <div class="pay-opt" data-method="apple_pay" onclick="selectPayment(this)">
+          <div class="pay-icon"> </div><div>Apple Pay</div>
+        </div>
+      </div>
+      <button class="btn-order" id="btn-order" onclick="submitOrder()" id="lbl-btn-order">Sifariş ver</button>
+    </div>
+  </div>
+</div>
+
+<!-- Timeout overlay -->
+<div id="timeout-overlay">
+  <h2 id="to-title">⏰ Müddət bitdi</h2>
+  <p id="to-desc">Sifariş vermək üçün QR kodu yenidən skan edin.</p>
+  <button onclick="location.reload()">Yenilə</button>
+</div>
+
+<!-- Success screen -->
+<div id="success-screen">
+  <div class="success-icon">🎉</div>
+  <h2 id="s-title" style="font-size:22px;font-weight:700">Sifariş qəbul edildi!</h2>
+  <p id="s-desc" style="font-size:14px;color:var(--muted)">Tezliklə hazırlanacaq</p>
+  <p id="s-order-id" style="font-size:12px;color:var(--muted)"></p>
+</div>
+
 <div id="toast"></div>
 
 <script>
-  // ── Helpers ────────────────────────────────────────────────
-  const $ = (s, ctx = document) => ctx.querySelector(s);
-  const $$ = (s, ctx = document) => [...ctx.querySelectorAll(s)];
+// ════════════════════════════════════════════════════════
+// CONFIG & STATE
+// ════════════════════════════════════════════════════════
+const API = window.location.origin + "/api";
+const params = new URLSearchParams(window.location.search);
+const SLUG   = window.location.pathname.split("/").filter(Boolean)[1] || "";
+const MASA   = params.get("masa") || null;
+const KOD    = params.get("kod")  || null;
 
-  function showToast(msg) {
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.classList.add("show");
-    setTimeout(() => t.classList.remove("show"), 2000);
+// Dil: URL → localStorage → brauzer → az
+function detectLang() {
+  const urlLang = params.get("lang");
+  if (urlLang && ["az","ru","en"].includes(urlLang)) return urlLang;
+  const saved = localStorage.getItem("qr_lang");
+  if (saved && ["az","ru","en"].includes(saved)) return saved;
+  const browser = (navigator.language || "az").slice(0,2).toLowerCase();
+  return ["az","ru","en"].includes(browser) ? browser : "az";
+}
+let LANG = detectLang();
+
+let sessionId   = localStorage.getItem("qr_session_" + SLUG) || null;
+let sessionExp  = parseInt(localStorage.getItem("qr_session_exp_" + SLUG) || "0");
+let cart        = [];
+let payMethod   = "cash";
+let timerInterval = null;
+let menuData    = null;
+
+// ════════════════════════════════════════════════════════
+// TRANSLATIONS
+// ════════════════════════════════════════════════════════
+const T = {
+  az: {
+    loading:"Menyu yüklənir...", masa:"Masa", order:"Sifariş", total:"Cəmi",
+    name:"Adınız", phone:"WhatsApp nömrəsi", note:"Qeyd",
+    payment:"Ödəniş üsulu", cash:"Nağd", card:"Masada kart",
+    btn_order:"Sifariş ver", btn_ordering:"Göndərilir...",
+    order_success:"Sifarişiniz qəbul edildi! 🍽️",
+    order_desc:"Tezliklə hazırlanacaq. Masa:",
+    timeout_title:"⏰ Müddət bitdi",
+    timeout_desc:"Sifariş vermək üçün QR kodu yenidən skan edin.",
+    wifi:"WiFi şifrəsi", copy:"Kopyala", copied:"Kopyalandı ✓",
+    unavailable:"Mövcud deyil", popular:"Populyar", isnew:"Yeni",
+    add_cart:"Səbətə əlavə edildi", daily_special:"✨ Günün xüsusi təklifi",
+    items:"element", empty_cart:"Səbət boşdur",
+    note_ph:"Az duzlu, allergiya və s.", name_ph:"Anar", phone_ph:"+994 50 ...",
+  },
+  ru: {
+    loading:"Меню загружается...", masa:"Стол", order:"Заказ", total:"Итого",
+    name:"Ваше имя", phone:"Номер WhatsApp", note:"Примечание",
+    payment:"Способ оплаты", cash:"Наличные", card:"Картой на столе",
+    btn_order:"Заказать", btn_ordering:"Отправляется...",
+    order_success:"Заказ принят! 🍽️",
+    order_desc:"Скоро будет готово. Стол:",
+    timeout_title:"⏰ Время вышло",
+    timeout_desc:"Для заказа отсканируйте QR-код снова.",
+    wifi:"Пароль WiFi", copy:"Копировать", copied:"Скопировано ✓",
+    unavailable:"Недоступно", popular:"Популярное", isnew:"Новинка",
+    add_cart:"Добавлено в корзину", daily_special:"✨ Спецпредложение дня",
+    items:"позиций", empty_cart:"Корзина пуста",
+    note_ph:"Без соли, аллергия и т.д.", name_ph:"Анар", phone_ph:"+994 50 ...",
+  },
+  en: {
+    loading:"Loading menu...", masa:"Table", order:"Order", total:"Total",
+    name:"Your name", phone:"WhatsApp number", note:"Note",
+    payment:"Payment method", cash:"Cash", card:"Card at table",
+    btn_order:"Place order", btn_ordering:"Sending...",
+    order_success:"Order received! 🍽️",
+    order_desc:"Will be ready soon. Table:",
+    timeout_title:"⏰ Session expired",
+    timeout_desc:"Please scan the QR code again to order.",
+    wifi:"WiFi password", copy:"Copy", copied:"Copied ✓",
+    unavailable:"Unavailable", popular:"Popular", isnew:"New",
+    add_cart:"Added to cart", daily_special:"✨ Daily special",
+    items:"items", empty_cart:"Cart is empty",
+    note_ph:"Less salt, allergies etc.", name_ph:"Anar", phone_ph:"+994 50 ...",
   }
+};
 
-  function copyWifi(password) {
-    navigator.clipboard?.writeText(password).then(() => showToast("WiFi şifrəsi kopyalandı ✓"));
+function t(key) { return (T[LANG] || T.az)[key] || key; }
+
+// ════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════
+const toast = msg => {
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  setTimeout(()=>el.classList.remove("show"), 2200);
+};
+
+// ════════════════════════════════════════════════════════
+// SESSION (vaxt limiti)
+// ════════════════════════════════════════════════════════
+async function initSession() {
+  // Mövcud session yoxla
+  if (sessionId && sessionExp > Date.now()) {
+    startTimer(Math.floor((sessionExp - Date.now()) / 1000));
+    return true;
   }
-
-  // ── Get slug from URL ──────────────────────────────────────
-  // Expected URL: /menu/<slug>/  or ?slug=<slug> in dev
-  function getSlug() {
-    const parts = window.location.pathname.split("/").filter(Boolean);
-    const menuIdx = parts.indexOf("menu");
-    if (menuIdx !== -1 && parts[menuIdx + 1]) return parts[menuIdx + 1];
-    return new URLSearchParams(window.location.search).get("slug") || "kafe-seher";
-  }
-
-  // ── Render ─────────────────────────────────────────────────
-  function renderMenu(data) {
-    const currency = data.currency || "AZN";
-
-    // Cover section
-    const coverHtml = `
-      <div class="cover">
-        ${data.cover_image
-          ? `<img class="cover-img" src="${data.cover_image}" alt="${data.name}" />`
-          : `<div style="width:100%;height:100%;background:linear-gradient(135deg,#2c2c2e,#1c1c1e)"></div>`}
-        <div class="cover-gradient"></div>
-        <div class="cover-info">
-          <div class="logo-wrap">
-            ${data.logo ? `<img src="${data.logo}" alt="logo">` : "🍽️"}
-          </div>
-          <div class="cover-text">
-            <h1>${data.name}</h1>
-            ${data.description ? `<p>${data.description}</p>` : ""}
-          </div>
-        </div>
-      </div>`;
-
-    // Quick actions
-    const actionsHtml = `
-      <div class="quick-actions">
-        ${data.whatsapp
-          ? `<a class="action-btn primary" href="https://wa.me/${data.whatsapp.replace(/\D/g,'')}">
-               <span class="icon">💬</span> WhatsApp sifariş
-             </a>`
-          : ""}
-        ${data.phone
-          ? `<a class="action-btn" href="tel:${data.phone}">
-               <span class="icon">📞</span> Zəng et
-             </a>`
-          : ""}
-        ${data.address
-          ? `<span class="action-btn" onclick="showToast('${data.address}')">
-               <span class="icon">📍</span> Ünvan
-             </span>`
-          : ""}
-      </div>`;
-
-    // Daily specials
-    const activeSpecials = (data.specials || []).filter(s => s);
-    const specialsHtml = activeSpecials.map(s => `
-      <div class="special-banner">
-        <div class="label">✨ Günün xüsusi təklifi</div>
-        <h3>${s.title}</h3>
-        ${s.description ? `<p style="font-size:13px;color:#8e8e93;margin-top:3px">${s.description}</p>` : ""}
-        <div class="prices">
-          ${s.original_price ? `<span class="old-price">${s.original_price} ${currency}</span>` : ""}
-          <span class="new-price">${s.special_price} ${currency}</span>
-          ${s.original_price ? `<span style="font-size:11px;color:#34c759;font-weight:600">ENDİRİM</span>` : ""}
-        </div>
-      </div>`).join("");
-
-    // Category tabs
-    const categories = (data.categories || []).filter(c => c.items?.length > 0);
-    const tabsHtml = `
-      <div class="tabs-wrap">
-        <div class="tabs" id="tabs">
-          ${categories.map((cat, i) =>
-            `<div class="tab ${i===0?"active":""}" data-idx="${i}" onclick="scrollToSection(${i})">
-               ${cat.icon ? cat.icon + " " : ""}${cat.name}
-             </div>`
-          ).join("")}
-        </div>
-      </div>`;
-
-    // Menu sections
-    const sectionsHtml = categories.map((cat, catIdx) => {
-      const items = cat.items.map(item => {
-        const badges = [
-          !item.is_available ? `<span class="badge badge-unavailable">Mövcud deyil</span>` : "",
-          item.is_popular ? `<span class="badge badge-popular">🔥 Populyar</span>` : "",
-          item.is_new ? `<span class="badge badge-new">✨ Yeni</span>` : "",
-        ].filter(Boolean).join("");
-
-        return `
-          <div class="item-card">
-            ${item.image
-              ? `<img class="item-img" src="${item.image}" alt="${item.name}" loading="lazy" />`
-              : `<div class="item-img-placeholder">${cat.icon || "🍴"}</div>`}
-            <div class="item-body">
-              ${badges ? `<div class="item-badges">${badges}</div>` : ""}
-              <div class="item-name ${!item.is_available?"unavailable":""}">${item.name}</div>
-              ${item.description ? `<div class="item-desc">${item.description}</div>` : ""}
-              <div class="item-meta">
-                <div>
-                  <div class="item-price">${parseFloat(item.price).toFixed(2)} ${currency}</div>
-                  ${item.weight_or_volume ? `<div class="item-weight">${item.weight_or_volume}</div>` : ""}
-                </div>
-              </div>
-            </div>
-          </div>`;
-      }).join("");
-
-      return `
-        <div class="section" id="section-${catIdx}" data-idx="${catIdx}">
-          <div class="section-title">${cat.icon ? cat.icon + " " : ""}${cat.name}</div>
-          ${items}
-        </div>`;
-    }).join("");
-
-    // WiFi
-    const wifiHtml = data.wifi_password ? `
-      <div class="wifi-card">
-        <div class="wifi-icon">📶</div>
-        <div>
-          <div class="wifi-label">WiFi şifrəsi</div>
-          <div class="wifi-pass">${data.wifi_password}</div>
-        </div>
-        <button class="wifi-copy" onclick="copyWifi('${data.wifi_password}')">Kopyala</button>
-      </div>` : "";
-
-    // Footer
-    const footerHtml = `
-      <div class="footer">
-        <p>Bu rəqəmsal menyu <a href="#">QR Menyu AZ</a> tərəfindən hazırlanmışdır</p>
-      </div>`;
-
-    document.getElementById("app").innerHTML =
-      coverHtml + actionsHtml + specialsHtml + tabsHtml + sectionsHtml + wifiHtml + footerHtml;
-
-    document.getElementById("app").style.display = "block";
-
-    // Activate tab on scroll
-    const sections = $$(".section");
-    const tabEls = $$("#tabs .tab");
-    const tabsWrap = $(".tabs-wrap");
-
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const idx = parseInt(entry.target.dataset.idx);
-          tabEls.forEach((t, i) => t.classList.toggle("active", i === idx));
-          const activeTab = tabEls[idx];
-          if (activeTab) activeTab.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
-        }
-      });
-    }, { rootMargin: `-${tabsWrap.offsetHeight + 60}px 0px -55% 0px` });
-
-    sections.forEach(s => observer.observe(s));
-  }
-
-  window.scrollToSection = function(idx) {
-    const el = document.getElementById(`section-${idx}`);
-    if (!el) return;
-    const offset = document.querySelector(".tabs-wrap").offsetHeight + 8;
-    window.scrollTo({ top: el.offsetTop - offset, behavior: "smooth" });
-  };
-
-  // ── Fetch & render ─────────────────────────────────────────
-  async function init() {
-    const slug = getSlug();
-    // In production: fetch(`/api/menu/${slug}/`)
-    // For demo/development, we use mock data below
-    try {
-      const res = await fetch(`/api/menu/${slug}/`);
-      if (!res.ok) throw new Error("not found");
-      const data = await res.json();
-      renderMenu(data);
-    } catch {
-      // Fallback: mock data so the page works standalone for demos
-      renderMenu(MOCK_DATA);
-    } finally {
-      const loader = document.getElementById("loading");
-      loader.classList.add("hidden");
-      setTimeout(() => loader.remove(), 500);
+  // Yeni session yarat
+  try {
+    const res = await fetch(`${API}/menu/${SLUG}/scan/`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ masa: MASA ? parseInt(MASA) : null, kod: KOD || "", lang: LANG })
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      alert(data.detail || "Xəta baş verdi");
+      return false;
     }
+    sessionId  = data.session_id;
+    sessionExp = new Date(data.expires_at).getTime();
+    localStorage.setItem("qr_session_" + SLUG, sessionId);
+    localStorage.setItem("qr_session_exp_" + SLUG, sessionExp.toString());
+    startTimer(45 * 60);
+    return true;
+  } catch(e) {
+    // Session endpoint işləmədikdə demo mode ilə davam et
+    console.warn("Session xətası, demo modeda davam edir");
+    return true;
+  }
+}
+
+function startTimer(totalSeconds) {
+  const bar = document.getElementById("timer-bar");
+  let remaining = totalSeconds;
+  bar.style.width = "100%";
+
+  timerInterval = setInterval(() => {
+    remaining--;
+    const pct = (remaining / totalSeconds) * 100;
+    bar.style.width = pct + "%";
+    if (remaining < 300) bar.classList.add("warning"); // son 5 dəqiqə
+    if (remaining <= 0) {
+      clearInterval(timerInterval);
+      showTimeout();
+    }
+  }, 1000);
+}
+
+function showTimeout() {
+  const ov = document.getElementById("timeout-overlay");
+  document.getElementById("to-title").textContent = t("timeout_title");
+  document.getElementById("to-desc").textContent  = t("timeout_desc");
+  ov.classList.add("show");
+  document.getElementById("btn-order").disabled = true;
+}
+
+// ════════════════════════════════════════════════════════
+// RENDER MENU
+// ════════════════════════════════════════════════════════
+function renderMenu(data) {
+  menuData = data;
+  const currency = data.currency || "AZN";
+  const categories = (data.categories || []).filter(c => c.items?.length > 0);
+
+  // Cover
+  let html = `<div class="cover">
+    ${data.cover_image ? `<img class="cover-img" src="${data.cover_image}" alt="${data.name}"/>` : `<div style="width:100%;height:100%;background:linear-gradient(135deg,#2c2c2e,#1c1c1e)"></div>`}
+    <div class="cover-gradient"></div>
+    <div class="cover-info">
+      <div class="logo-wrap">${data.logo ? `<img src="${data.logo}">` : "🍽️"}</div>
+      <div class="cover-text">
+        <h1>${data.name}</h1>
+        ${data.description ? `<p>${data.description}</p>` : ""}
+        ${MASA ? `<div class="masa-badge">🪑 ${t("masa")} ${MASA}</div>` : ""}
+      </div>
+    </div>
+  </div>`;
+
+  // Lang selector
+  html += `<div class="lang-selector">
+    ${["az","ru","en"].map(l=>`<button class="lang-btn ${l===LANG?"active":""}" onclick="changeLang('${l}')">${l.toUpperCase()}</button>`).join("")}
+  </div>`;
+
+  // Quick actions
+  html += `<div class="quick-actions">
+    ${data.whatsapp ? `<a class="action-btn primary" href="https://wa.me/${data.whatsapp.replace(/\D/g,'')}">💬 WhatsApp</a>` : ""}
+    ${data.phone ? `<a class="action-btn" href="tel:${data.phone}">📞 ${data.phone}</a>` : ""}
+    ${data.address ? `<span class="action-btn" onclick="toast('${data.address}')">📍 ${t("masa")}</span>` : ""}
+  </div>`;
+
+  // Daily specials
+  (data.specials||[]).filter(s=>s).forEach(s => {
+    html += `<div class="special-banner">
+      <div class="lbl">${t("daily_special")}</div>
+      <h3>${s.title}</h3>
+      ${s.description ? `<p style="font-size:12px;color:var(--muted);margin-top:3px">${s.description}</p>` : ""}
+      <div class="special-prices">
+        ${s.original_price ? `<span class="old-price">${s.original_price} ${currency}</span>` : ""}
+        <span class="new-price">${s.special_price} ${currency}</span>
+      </div>
+    </div>`;
+  });
+
+  // Category tabs
+  html += `<div class="tabs-wrap"><div class="tabs" id="tabs">
+    ${categories.map((c,i) => `<div class="tab ${i===0?"active":""}" data-idx="${i}" onclick="scrollToSection(${i})">${c.icon||""} ${c.name}</div>`).join("")}
+  </div></div>`;
+
+  // Menu sections
+  categories.forEach((cat, catIdx) => {
+    html += `<div class="section" id="section-${catIdx}" data-idx="${catIdx}">
+      <div class="section-title">${cat.icon||""} ${cat.name}</div>`;
+    cat.items.forEach(item => {
+      const badges = [
+        !item.is_available ? `<span class="badge badge-unavailable">${t("unavailable")}</span>` : "",
+        item.is_popular   ? `<span class="badge badge-popular">🔥 ${t("popular")}</span>` : "",
+        item.is_new       ? `<span class="badge badge-new">✨ ${t("isnew")}</span>` : "",
+      ].filter(Boolean).join("");
+      html += `<div class="item-card" onclick="${item.is_available ? `addToCart(${item.id},'${item.name.replace(/'/g,"\\'")}',${item.price},'${cat.icon||"🍴"}')` : ""}">
+        ${item.image ? `<img class="item-img" src="${item.image}" loading="lazy"/>` : `<div class="item-img-ph">${cat.icon||"🍴"}</div>`}
+        <div class="item-body">
+          ${badges ? `<div class="item-badges">${badges}</div>` : ""}
+          <div class="item-name ${!item.is_available?"unavailable":""}">${item.name}</div>
+          ${item.description ? `<div class="item-desc">${item.description}</div>` : ""}
+          <div class="item-meta">
+            <div>
+              <div class="item-price">${parseFloat(item.price).toFixed(2)} ${currency}</div>
+              ${item.weight_or_volume ? `<div class="item-weight">${item.weight_or_volume}</div>` : ""}
+            </div>
+            ${item.is_available ? `<button class="add-btn" onclick="event.stopPropagation();addToCart(${item.id},'${item.name.replace(/'/g,"\\'")}',${item.price},'${cat.icon||"🍴"}')">+</button>` : ""}
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  // WiFi
+  if (data.wifi_password) {
+    html += `<div class="wifi-card">
+      <div style="font-size:20px">📶</div>
+      <div><div style="font-size:11px;color:var(--muted)">${t("wifi")}</div>
+      <div style="font-size:14px;font-weight:600;font-family:monospace">${data.wifi_password}</div></div>
+      <button class="wifi-copy" onclick="copyWifi('${data.wifi_password}')">${t("copy")}</button>
+    </div>`;
   }
 
-  // ── Mock data (for standalone demo) ───────────────────────
-  const MOCK_DATA = {
-    name: "Kafe Şəhər",
-    description: "Mingachevirin ən gözəl kafe menyusu",
-    phone: "+994 50 000 00 00",
-    whatsapp: "+994500000000",
-    address: "Mingachevir şəh., Heydər Əliyev pr. 12",
-    wifi_password: "kafeSEHER2025",
-    currency: "AZN",
-    cover_image: null,
-    logo: null,
-    specials: [{
-      title: "Günün xüsusi: Kebab + Çay dəsti",
-      description: "Lülə kebab + 2 stəkan çay birlikdə",
-      original_price: "11.30",
-      special_price: "9.00",
-    }],
-    categories: [
-      {
-        name: "İçkilər", icon: "☕",
-        items: [
-          { name: "Türk qəhvəsi", price: "2.50", description: "Ənənəvi üsulla hazırlanmış", is_popular: true, is_new: false, is_available: true },
-          { name: "Çay (stəkan)", price: "0.80", description: "Azərbaycan çayı, limonla", is_popular: false, is_new: false, is_available: true },
-          { name: "Portağal şirəsi", price: "3.00", description: "Təzə sıxılmış", is_popular: false, is_new: true, is_available: true },
-          { name: "Limonad", price: "2.00", description: "Ev hazırlanması", is_popular: false, is_new: false, is_available: true },
-          { name: "Su (0.5L)", price: "0.50", description: "", is_popular: false, is_new: false, is_available: true },
-        ]
-      },
-      {
-        name: "Yeməklər", icon: "🍽️",
-        items: [
-          { name: "Plov", price: "7.00", description: "Ənənəvi Azərbaycan plovu, şabalıd və kişmişlə", weight_or_volume: "350q", is_popular: true, is_new: false, is_available: true },
-          { name: "Dolma", price: "8.00", description: "Üzüm yarpağında ətli dolma", weight_or_volume: "300q", is_popular: false, is_new: false, is_available: true },
-          { name: "Kebab (lülə)", price: "9.00", description: "Əlcək soğan və pomidor ilə", weight_or_volume: "250q", is_popular: true, is_new: false, is_available: true },
-          { name: "Düşbərə", price: "5.00", description: "Ev hazırlanması kiçik xəmirli", weight_or_volume: "250ml", is_popular: false, is_new: false, is_available: false },
-        ]
-      },
-      {
-        name: "Salatlar", icon: "🥗",
-        items: [
-          { name: "Kənd salatı", price: "4.00", description: "Pomidor, xiyar, soğan, zeytun yağı", weight_or_volume: "200q", is_popular: false, is_new: false, is_available: true },
-          { name: "Çoban salatı", price: "4.50", description: "Əlavə pendir ilə", weight_or_volume: "220q", is_popular: false, is_new: false, is_available: true },
-        ]
-      },
-      {
-        name: "Desert", icon: "🍰",
-        items: [
-          { name: "Paklavа", price: "3.00", description: "Ev hazırlanması, qoz ilə", weight_or_volume: "100q", is_popular: true, is_new: false, is_available: true },
-          { name: "Şəkərbura", price: "2.50", description: "", weight_or_volume: "80q", is_popular: false, is_new: false, is_available: true },
-          { name: "Gündəlik tort", price: "4.00", description: "Hər gün fərqli növ", is_popular: false, is_new: true, is_available: true },
-        ]
-      },
-    ]
+  html += `<div class="footer"><p>QR Menyu AZ · <a href="#" style="color:var(--accent)">qrmenu.az</a></p></div>`;
+
+  document.getElementById("app").innerHTML = html;
+  document.getElementById("app").style.display = "block";
+
+  // Scroll spy
+  const sections = document.querySelectorAll(".section");
+  const tabEls   = document.querySelectorAll("#tabs .tab");
+  const tabsWrap = document.querySelector(".tabs-wrap");
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const idx = parseInt(e.target.dataset.idx);
+        tabEls.forEach((t,i) => t.classList.toggle("active", i===idx));
+        tabEls[idx]?.scrollIntoView({behavior:"smooth",block:"nearest",inline:"center"});
+      }
+    });
+  }, { rootMargin: `-${tabsWrap.offsetHeight+60}px 0px -55% 0px` });
+  sections.forEach(s => obs.observe(s));
+}
+
+window.scrollToSection = idx => {
+  const el = document.getElementById(`section-${idx}`);
+  if (!el) return;
+  const offset = document.querySelector(".tabs-wrap").offsetHeight + 8;
+  window.scrollTo({top: el.offsetTop - offset, behavior:"smooth"});
+};
+
+// ════════════════════════════════════════════════════════
+// LANG
+// ════════════════════════════════════════════════════════
+function changeLang(lang) {
+  LANG = lang;
+  localStorage.setItem("qr_lang", lang);
+  fetchAndRender();
+}
+
+// ════════════════════════════════════════════════════════
+// CART
+// ════════════════════════════════════════════════════════
+function addToCart(id, name, price, icon) {
+  const existing = cart.find(i => i.id === id);
+  if (existing) existing.qty++;
+  else cart.push({id, name, price: parseFloat(price), icon, qty: 1});
+  updateCartBar();
+  toast(t("add_cart"));
+}
+
+function updateCartBar() {
+  const bar   = document.getElementById("cart-bar");
+  const count = cart.reduce((s,i) => s + i.qty, 0);
+  const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
+  document.getElementById("cart-label").textContent = `🛒 ${count} ${t("items")}`;
+  document.getElementById("cart-total-bar").textContent = total.toFixed(2) + " AZN";
+  bar.classList.toggle("show", count > 0);
+}
+
+function openCart() {
+  renderCartPanel();
+  document.getElementById("cart-drawer").classList.add("open");
+}
+
+function closeCart() {
+  document.getElementById("cart-drawer").classList.remove("open");
+}
+
+function renderCartPanel() {
+  const currency = menuData?.currency || "AZN";
+  document.getElementById("cart-title").textContent = t("order");
+  document.getElementById("ct-label").textContent   = t("total");
+  document.getElementById("lbl-name").textContent   = t("name");
+  document.getElementById("lbl-phone").textContent  = t("phone");
+  document.getElementById("lbl-note").textContent   = t("note");
+  document.getElementById("lbl-payment").textContent= t("payment");
+  document.getElementById("cust-name").placeholder  = t("name_ph");
+  document.getElementById("cust-phone").placeholder = t("phone_ph");
+  document.getElementById("cust-note").placeholder  = t("note_ph");
+  document.getElementById("btn-order").textContent  = t("btn_order");
+  document.getElementById("pm-cash").textContent    = t("cash");
+  document.getElementById("pm-table").textContent   = t("card");
+
+  const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
+  document.getElementById("cart-grand-total").textContent = total.toFixed(2) + " " + currency;
+
+  const itemsEl = document.getElementById("cart-items");
+  if (!cart.length) { itemsEl.innerHTML = `<p style="color:var(--muted);padding:12px 0">${t("empty_cart")}</p>`; return; }
+  itemsEl.innerHTML = cart.map((item,idx) => `
+    <div class="cart-item">
+      <div style="font-size:20px">${item.icon}</div>
+      <div style="flex:1">
+        <div class="cart-item-name">${item.name}</div>
+        <div class="cart-item-price">${(item.price * item.qty).toFixed(2)} ${currency}</div>
+      </div>
+      <div class="qty-ctrl">
+        <div class="qty-btn" onclick="changeQty(${idx},-1)">−</div>
+        <div class="qty-num">${item.qty}</div>
+        <div class="qty-btn" onclick="changeQty(${idx},1)">+</div>
+      </div>
+    </div>`).join("");
+}
+
+function changeQty(idx, delta) {
+  cart[idx].qty += delta;
+  if (cart[idx].qty <= 0) cart.splice(idx, 1);
+  updateCartBar();
+  renderCartPanel();
+}
+
+function selectPayment(el) {
+  document.querySelectorAll(".pay-opt").forEach(o => o.classList.remove("selected"));
+  el.classList.add("selected");
+  payMethod = el.dataset.method;
+}
+
+// ════════════════════════════════════════════════════════
+// ORDER SUBMIT
+// ════════════════════════════════════════════════════════
+async function submitOrder() {
+  if (!cart.length) { toast(t("empty_cart")); return; }
+
+  const btn = document.getElementById("btn-order");
+  btn.disabled = true;
+  btn.textContent = t("btn_ordering");
+
+  const body = {
+    session_id    : sessionId,
+    table_number  : MASA ? parseInt(MASA) : null,
+    customer_name : document.getElementById("cust-name").value.trim(),
+    customer_phone: document.getElementById("cust-phone").value.trim(),
+    note          : document.getElementById("cust-note").value.trim(),
+    payment_method: payMethod,
+    items         : cart.map(i => ({id: i.id, name: i.name, price: i.price, qty: i.qty})),
   };
 
-  init();
+  try {
+    const res  = await fetch(`${API}/menu/${SLUG}/order/`, {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+
+    if (!res.ok) {
+      if (data.error === "timeout") { showTimeout(); return; }
+      toast(data.detail || "Xəta baş verdi");
+      btn.disabled = false; btn.textContent = t("btn_order");
+      return;
+    }
+
+    // ABB Pay ödəniş linki varsa yönləndir
+    if (data.payment_url) {
+      window.location.href = data.payment_url;
+      return;
+    }
+
+    // Uğurlu sifariş
+    closeCart();
+    cart = [];
+    updateCartBar();
+    showSuccess(data);
+
+  } catch(e) {
+    toast("Şəbəkə xətası");
+    btn.disabled = false; btn.textContent = t("btn_order");
+  }
+}
+
+function showSuccess(data) {
+  const ss = document.getElementById("success-screen");
+  document.getElementById("s-title").textContent  = t("order_success");
+  document.getElementById("s-desc").textContent   = t("order_desc") + " " + (MASA || "—");
+  document.getElementById("s-order-id").textContent = `#${data.order_id} · ${data.total} AZN`;
+  ss.classList.add("show");
+  setTimeout(() => ss.classList.remove("show"), 5000);
+}
+
+// ════════════════════════════════════════════════════════
+// WIFI
+// ════════════════════════════════════════════════════════
+function copyWifi(pw) {
+  navigator.clipboard?.writeText(pw).then(() => toast(t("copied")));
+}
+
+// ════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════
+async function fetchAndRender() {
+  document.getElementById("loading-text").textContent = t("loading");
+  try {
+    const res  = await fetch(`${API}/menu/${SLUG}/?lang=${LANG}`);
+    const data = await res.json();
+    renderMenu(data);
+  } catch(e) {
+    document.getElementById("loading-text").textContent = "Xəta baş verdi";
+  } finally {
+    const loader = document.getElementById("loading");
+    loader.classList.add("hidden");
+    setTimeout(() => loader.remove(), 500);
+  }
+}
+
+async function init() {
+  await fetchAndRender();
+  await initSession();
+}
+
+init();
 </script>
 </body>
 </html>

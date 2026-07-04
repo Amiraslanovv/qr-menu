@@ -127,3 +127,21 @@ class Command(BaseCommand):
    Admin    : /django-admin/  (admin/admin123)
    Sahibkar : kafe_seher / kafe123
 """))
+
+# Bu əmri seed_demo handle() funksiyasının sonuna əlavə et
+# Demo masalar ayrıca command olaraq da işə salına bilər:
+
+class Command2:
+    """Demo masalar üçün ayrıca əmr — birbaşa seed_demo-ya əlavə edilib"""
+    pass
+
+def add_demo_tables(restaurant):
+    """Restorana demo masalar əlavə et"""
+    import random, string
+    from menu.models import Table
+    for i in range(1, 6):
+        code = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+        Table.objects.get_or_create(
+            restaurant=restaurant, number=i,
+            defaults={"label": f"Masa {i}", "secret_code": code}
+        )

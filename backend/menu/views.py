@@ -486,3 +486,525 @@ def admin_all_restaurants(request):
     qs  = Restaurant.objects.all().select_related("owner")
     ser = RestaurantAdminSerializer(qs, many=True)
     return Response(ser.data)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  MASA (TABLE) MANAGEMENT
+# ═══════════════════════════════════════════════════════════════
+
+from .models import Table, Order, QRScan
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def owner_tables(request):
+    """GET /api/owner/tables/ — bütün masalar"""
+    restaurant = get_owner_restaurant(request.user)
+    tables = restaurant.tables.all()
+    data = [{
+        "id": t.id,
+        "number": t.number,
+        "label": t.label,
+        "secret_code": t.secret_code,
+        "is_active": t.is_active,
+        "qr_url": request.build_absolute_uri(f"/api/menu/{restaurant.slug}/qr/?masa={t.number}"),
+        "menu_url": request.build_absolute_uri(f"/menu/{restaurant.slug}/?masa={t.number}&kod={t.secret_code}"),
+    } for t in tables]
+    return Response(data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_table(request):
+    """POST /api/owner/tables/ — yeni masa yarat"""
+    restaurant = get_owner_restaurant(request.user)
+    number = request.data.get("number")
+    label  = request.data.get("label", "")
+    if not number:
+        return Response({"detail": "Masa nömrəsi vacibdir."}, status=400)
+    if Table.objects.filter(restaurant=restaurant, number=number).exists():
+        return Response({"detail": f"Masa {number} artıq mövcuddur."}, status=400)
+    import random, string
+    code = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
+    table = Table.objects.create(
+        restaurant=restaurant, number=number, label=label, secret_code=code
+    )
+    return Response({
+        "id": table.id, "number": table.number,
+        "label": table.label, "secret_code": table.secret_code,
+        "menu_url": f"/menu/{restaurant.slug}/?masa={table.number}&kod={table.secret_code}",
+    }, status=201)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def regenerate_table_code(request, table_id):
+    """POST /api/owner/tables/<id>/regenerate/ — kodu yenilə (ofisant dəyişdirir)"""
+    restaurant = get_owner_restaurant(request.user)
+    table = get_object_or_404(Table, id=table_id, restaurant=restaurant)
+    table.regenerate_code()
+    return Response({
+        "id": table.id, "number": table.number,
+        "secret_code": table.secret_code,
+        "menu_url": f"/menu/{restaurant.slug}/?masa={table.number}&kod={table.secret_code}",
+    })
+
+
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated])
+def delete_table(request, table_id):
+    """DELETE /api/owner/tables/<id>/"""
+    restaurant = get_owner_restaurant(request.user)
+    table = get_object_or_404(Table, id=table_id, restaurant=restaurant)
+    table.delete()
+    return Response(status=204)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def table_qr_svg(request, table_id):
+    """GET /api/owner/tables/<id>/qr/ — masa üçün QR SVG"""
+    restaurant = get_owner_restaurant(request.user)
+    table = get_object_or_404(Table, id=table_id, restaurant=restaurant)
+    menu_url = request.build_absolute_uri(
+        f"/menu/{restaurant.slug}/?masa={table.number}&kod={table.secret_code}"
+    )
+    factory = qrcode.image.svg.SvgPathImage
+    qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H,
+                       box_size=10, border=4, image_factory=factory)
+    qr.add_data(menu_url)
+    qr.make(fit=True)
+    img = qr.make_image()
+    buffer = BytesIO()
+    img.save(buffer)
+    buffer.seek(0)
+    return HttpResponse(buffer.getvalue(), content_type="image/svg+xml",
+                        headers={"Content-Disposition": f'attachment; filename="masa-{table.number}.svg"'})
+
+
+# ═══════════════════════════════════════════════════════════════
+#  QR SCAN SESSION (vaxt limiti üçün)
+# ═══════════════════════════════════════════════════════════════
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def register_scan(request, slug):
+    """
+    POST /api/menu/<slug>/scan/
+    QR skan olunanda çağırılır. 45 dəqiqəlik session yaradır.
+    Body: { "masa": 5, "kod": "A7K2XB" }
+    Returns: { "session_id": "...", "expires_at": "...", "valid": true }
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+    import uuid
+
+    restaurant = get_object_or_404(Restaurant, slug=slug, is_active=True)
+    masa_number = request.data.get("masa")
+    kod = request.data.get("kod", "")
+    lang = request.data.get("lang", "az")
+
+    table = None
+    if masa_number:
+        table = Table.objects.filter(
+            restaurant=restaurant, number=masa_number, is_active=True
+        ).first()
+        # Gizli kodu yoxla
+        if table and kod and table.secret_code != kod:
+            return Response({
+                "valid": False,
+                "detail": "Masa kodu yanlışdır. Zəhmət olmasa ofisiantı çağırın."
+            }, status=400)
+
+    session_id = str(uuid.uuid4())
+    now = timezone.now()
+    expires_at = now + timedelta(minutes=45)
+
+    scan = QRScan.objects.create(
+        restaurant=restaurant,
+        table=table,
+        table_number=masa_number,
+        session_id=session_id,
+        expires_at=expires_at,
+        user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        lang=lang,
+    )
+
+    # Analytics
+    MenuView.objects.create(
+        restaurant=restaurant,
+        user_agent=request.META.get("HTTP_USER_AGENT", ""),
+        lang=lang,
+    )
+
+    return Response({
+        "valid": True,
+        "session_id": session_id,
+        "expires_at": expires_at.isoformat(),
+        "table_number": masa_number,
+        "restaurant": restaurant.name_az,
+    })
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def verify_session(request):
+    """
+    GET /api/session/verify/?session_id=xxx
+    Session hələ etibarlıdırmı yoxla
+    """
+    from django.utils import timezone
+    session_id = request.GET.get("session_id")
+    if not session_id:
+        return Response({"valid": False, "detail": "Session ID yoxdur."})
+    try:
+        scan = QRScan.objects.get(session_id=session_id)
+        is_valid = timezone.now() < scan.expires_at
+        remaining = max(0, int((scan.expires_at - timezone.now()).total_seconds()))
+        return Response({
+            "valid": is_valid,
+            "expires_at": scan.expires_at.isoformat(),
+            "remaining_seconds": remaining,
+            "table_number": scan.table_number,
+        })
+    except QRScan.DoesNotExist:
+        return Response({"valid": False, "detail": "Session tapılmadı."})
+
+
+# ═══════════════════════════════════════════════════════════════
+#  SİFARİŞ (ORDER)
+# ═══════════════════════════════════════════════════════════════
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def place_order(request, slug):
+    """
+    POST /api/menu/<slug>/order/
+    Body: {
+      "session_id": "...",
+      "table_number": 5,
+      "customer_name": "Anar",
+      "customer_phone": "+99450...",
+      "items": [{"id": 1, "name": "Plov", "price": 7.00, "qty": 2}],
+      "note": "Az duzlu olsun",
+      "payment_method": "abb_pay"
+    }
+    """
+    from django.utils import timezone
+
+    restaurant = get_object_or_404(Restaurant, slug=slug, is_active=True)
+
+    # Session yoxla
+    session_id = request.data.get("session_id")
+    if session_id:
+        try:
+            scan = QRScan.objects.get(session_id=session_id)
+            if timezone.now() > scan.expires_at:
+                return Response({
+                    "error": "timeout",
+                    "detail": "Sifariş müddəti bitib (45 dəq). Zəhmət olmasa QR-ı yenidən skan edin."
+                }, status=400)
+        except QRScan.DoesNotExist:
+            return Response({
+                "error": "invalid_session",
+                "detail": "Sifariş sessiyası tapılmadı. QR-ı yenidən skan edin."
+            }, status=400)
+
+    items = request.data.get("items", [])
+    if not items:
+        return Response({"detail": "Sifariş boşdur."}, status=400)
+
+    total = sum(float(i.get("price", 0)) * int(i.get("qty", 1)) for i in items)
+    table_number = request.data.get("table_number")
+    table = None
+    if table_number:
+        table = Table.objects.filter(restaurant=restaurant, number=table_number).first()
+
+    order = Order.objects.create(
+        restaurant     = restaurant,
+        table          = table,
+        table_number   = table_number,
+        customer_name  = request.data.get("customer_name", ""),
+        customer_phone = request.data.get("customer_phone", ""),
+        items_json     = items,
+        note           = request.data.get("note", ""),
+        total_price    = total,
+        payment_method = request.data.get("payment_method", "cash"),
+        scan_time      = timezone.now(),
+    )
+
+    # Sahibə WhatsApp bildirişi göndər
+    _notify_owner_new_order(restaurant, order)
+
+    # ABB Pay seçilibsə ödəniş linki yarat
+    payment_url = None
+    if order.payment_method == "abb_pay":
+        payment_url = _init_abb_payment(order, request)
+
+    return Response({
+        "order_id": order.id,
+        "status": order.status,
+        "total": str(order.total_price),
+        "payment_url": payment_url,
+        "message": "Sifarişiniz qəbul edildi! Tezliklə hazırlanacaq. 🍽️",
+    }, status=201)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def order_status(request, order_id):
+    """GET /api/order/<id>/status/ — sifariş statusu"""
+    order = get_object_or_404(Order, id=order_id)
+    return Response({
+        "id": order.id,
+        "status": order.status,
+        "status_display": order.get_status_display(),
+        "total": str(order.total_price),
+        "payment_status": order.payment_status,
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def owner_orders_list(request):
+    """GET /api/owner/orders/ — bütün sifarişlər (real vaxtda)"""
+    restaurant = get_owner_restaurant(request.user)
+    status_filter = request.GET.get("status")
+    orders = restaurant.orders.all()
+    if status_filter:
+        orders = orders.filter(status=status_filter)
+    data = [{
+        "id": o.id,
+        "table_number": o.table_number,
+        "customer_name": o.customer_name,
+        "customer_phone": o.customer_phone,
+        "items": o.items_json,
+        "note": o.note,
+        "total": str(o.total_price),
+        "status": o.status,
+        "status_display": o.get_status_display(),
+        "payment_method": o.payment_method,
+        "payment_status": o.payment_status,
+        "created_at": o.created_at.strftime("%d.%m.%Y %H:%M"),
+    } for o in orders[:100]]
+    return Response(data)
+
+
+@api_view(["PATCH"])
+@permission_classes([IsAuthenticated])
+def update_order_status(request, order_id):
+    """PATCH /api/owner/orders/<id>/status/ — statusu dəyiş"""
+    restaurant = get_owner_restaurant(request.user)
+    order = get_object_or_404(Order, id=order_id, restaurant=restaurant)
+    new_status = request.data.get("status")
+    valid = [s[0] for s in Order.STATUS_CHOICES]
+    if new_status not in valid:
+        return Response({"detail": f"Yanlış status. Mümkünlər: {valid}"}, status=400)
+    order.status = new_status
+    order.save()
+    # Müştəriyə WhatsApp bildirişi
+    _notify_customer_status(order)
+    return Response({"id": order.id, "status": order.status, "status_display": order.get_status_display()})
+
+
+def _notify_owner_new_order(restaurant, order):
+    """Sahibə yeni sifariş bildirişi göndər"""
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    auth_token  = os.environ.get("TWILIO_AUTH_TOKEN")
+    from_number = os.environ.get("TWILIO_WHATSAPP_NUMBER", "")
+
+    if not all([account_sid, auth_token, from_number, restaurant.whatsapp]):
+        return
+
+    items_text = "\n".join([
+        f"  • {i.get('name','?')} x{i.get('qty',1)} — {float(i.get('price',0))*int(i.get('qty',1)):.2f} AZN"
+        for i in order.items_json
+    ])
+    message = (
+        f"🔔 YENİ SİFARİŞ #{order.id}\n"
+        f"🪑 Masa: {order.table_number or '—'}\n"
+        f"👤 Müştəri: {order.customer_name or '—'}\n"
+        f"📋 Sifariş:\n{items_text}\n"
+        f"💰 Cəmi: {order.total_price} AZN\n"
+        f"💳 Ödəniş: {order.get_payment_method_display()}\n"
+        f"📝 Qeyd: {order.note or '—'}\n"
+        f"⏰ Vaxt: {order.created_at.strftime('%H:%M')}"
+    )
+    try:
+        from twilio.rest import Client
+        client = Client(account_sid, auth_token)
+        client.messages.create(
+            body=message,
+            from_=from_number,
+            to=f"whatsapp:{restaurant.whatsapp}"
+        )
+        order.is_notified = True
+        order.save()
+    except Exception as e:
+        print(f"Twilio xətası: {e}")
+
+
+def _notify_customer_status(order):
+    """Müştəriyə status bildirişi göndər"""
+    if not order.customer_phone:
+        return
+    account_sid = os.environ.get("TWILIO_ACCOUNT_SID")
+    auth_token  = os.environ.get("TWILIO_AUTH_TOKEN")
+    from_number = os.environ.get("TWILIO_WHATSAPP_NUMBER", "")
+    if not all([account_sid, auth_token, from_number]):
+        return
+    status_msgs = {
+        "confirmed": "✅ Sifarişiniz təsdiqləndi!",
+        "preparing": "👨‍🍳 Sifarişiniz hazırlanır...",
+        "ready": "🔔 Sifarişiniz hazırdır! Zəhmət olmasa masaya baxın.",
+        "paid": "💚 Ödəniş qəbul edildi. Təşəkkür edirik!",
+        "cancelled": "❌ Sifarişiniz ləğv edildi. Ətraflı məlumat üçün ofisiantı çağırın.",
+    }
+    msg = status_msgs.get(order.status)
+    if not msg:
+        return
+    try:
+        from twilio.rest import Client
+        client = Client(account_sid, auth_token)
+        client.messages.create(
+            body=f"{msg}\nSifariş #{order.id} — {order.total_price} AZN",
+            from_=from_number,
+            to=f"whatsapp:{order.customer_phone}"
+        )
+    except Exception as e:
+        print(f"Müştəri bildiriş xətası: {e}")
+
+
+# ═══════════════════════════════════════════════════════════════
+#  ABB PAY İNTEQRASİYASI
+# ═══════════════════════════════════════════════════════════════
+
+def _init_abb_payment(order, request):
+    """
+    ABB Pay ödəniş sessiyası yaradır.
+    Sənəd: https://developers.abb.az/
+    Test mühiti: https://abb-test.gateway.az/payment/rest/
+    """
+    ABB_USERNAME = os.environ.get("ABB_PAY_USERNAME", "")
+    ABB_PASSWORD = os.environ.get("ABB_PAY_PASSWORD", "")
+    ABB_GATEWAY  = os.environ.get("ABB_PAY_GATEWAY", "https://abb-test.gateway.az/payment/rest/")
+
+    if not all([ABB_USERNAME, ABB_PASSWORD]):
+        return None  # ABB konfiqurasiya edilməyibsə keç
+
+    return_url = request.build_absolute_uri(f"/api/payment/abb/callback/?order_id={order.id}")
+
+    try:
+        resp = requests.post(f"{ABB_GATEWAY}register.do", data={
+            "userName"   : ABB_USERNAME,
+            "password"   : ABB_PASSWORD,
+            "orderNumber": str(order.id),
+            "amount"     : int(float(order.total_price) * 100),  # qəpik cinsindən
+            "currency"   : "944",  # AZN ISO kodu
+            "returnUrl"  : return_url,
+            "description": f"QR Menyu sifariş #{order.id} — Masa {order.table_number}",
+            "language"   : "az",
+        }, timeout=10)
+        data = resp.json()
+        if data.get("errorCode") == "0":
+            order.abb_transaction_id = data.get("orderId", "")
+            order.payment_status = "pending"
+            order.save()
+            return data.get("formUrl")  # Müştərini bu URL-ə yönləndir
+        else:
+            print(f"ABB Pay xətası: {data.get('errorMessage')}")
+            return None
+    except Exception as e:
+        print(f"ABB Pay bağlantı xətası: {e}")
+        return None
+
+
+@csrf_exempt
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def abb_payment_callback(request):
+    """
+    GET /api/payment/abb/callback/?order_id=<id>&orderId=<abb_id>
+    ABB Pay ödənişdən sonra müştərini buraya yönləndirir.
+    """
+    order_id = request.GET.get("order_id")
+    abb_order_id = request.GET.get("orderId")
+
+    if not order_id:
+        return HttpResponse("Sifariş tapılmadı.", status=400)
+
+    try:
+        order = Order.objects.get(id=order_id)
+    except Order.DoesNotExist:
+        return HttpResponse("Sifariş tapılmadı.", status=404)
+
+    # ABB-dən ödəniş statusunu yoxla
+    ABB_USERNAME = os.environ.get("ABB_PAY_USERNAME", "")
+    ABB_PASSWORD = os.environ.get("ABB_PAY_PASSWORD", "")
+    ABB_GATEWAY  = os.environ.get("ABB_PAY_GATEWAY", "https://abb-test.gateway.az/payment/rest/")
+
+    try:
+        resp = requests.post(f"{ABB_GATEWAY}getOrderStatus.do", data={
+            "userName": ABB_USERNAME,
+            "password": ABB_PASSWORD,
+            "orderId" : abb_order_id or order.abb_transaction_id,
+            "language": "az",
+        }, timeout=10)
+        data = resp.json()
+        # orderStatus: 2 = uğurlu ödəniş
+        if data.get("orderStatus") == 2:
+            order.payment_status = "paid"
+            order.status = "paid"
+            order.save()
+            _notify_owner_new_order(order.restaurant, order)
+            return HttpResponse("""
+                <html><body style="font-family:sans-serif;text-align:center;padding:40px">
+                <h2>✅ Ödəniş uğurla tamamlandı!</h2>
+                <p>Sifariş #{} — {} AZN</p>
+                <p>Masa: {}</p>
+                <script>setTimeout(()=>window.close(),3000)</script>
+                </body></html>
+            """.format(order.id, order.total_price, order.table_number))
+        else:
+            order.payment_status = "failed"
+            order.save()
+            return HttpResponse("""
+                <html><body style="font-family:sans-serif;text-align:center;padding:40px">
+                <h2>❌ Ödəniş uğursuz oldu</h2>
+                <p>Zəhmət olmasa yenidən cəhd edin və ya nağd ödəyin.</p>
+                </body></html>
+            """)
+    except Exception as e:
+        print(f"ABB callback xətası: {e}")
+        return HttpResponse("Xəta baş verdi.", status=500)
+
+
+# ═══════════════════════════════════════════════════════════════
+#  RATE LIMITING MIDDLEWARE (DDoS əleyhinə)
+# ═══════════════════════════════════════════════════════════════
+# views.py-da order və scan endpoint-lərinə rate limit əlavə et
+
+from django.core.cache import cache
+
+def check_rate_limit(ip, key, limit=30, window=60):
+    """
+    IP üzrə rate limiting.
+    limit: icazə verilən maksimum request sayı
+    window: saniyə cinsindən zaman pəncərəsi
+    """
+    cache_key = f"ratelimit:{key}:{ip}"
+    count = cache.get(cache_key, 0)
+    if count >= limit:
+        return False  # limitə çatıb
+    cache.set(cache_key, count + 1, window)
+    return True
+
+
+def get_client_ip(request):
+    """Real IP-ni al (proxy arxasında da işləyir)"""
+    x_forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
+    if x_forwarded:
+        return x_forwarded.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR", "")

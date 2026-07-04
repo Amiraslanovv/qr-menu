@@ -119,3 +119,35 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ── File upload limits ────────────────────────────────────────
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10 MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
+
+# ── ABB Pay ──────────────────────────────────────────────────
+ABB_PAY_USERNAME = os.environ.get("ABB_PAY_USERNAME", "")
+ABB_PAY_PASSWORD = os.environ.get("ABB_PAY_PASSWORD", "")
+ABB_PAY_GATEWAY  = os.environ.get("ABB_PAY_GATEWAY", "https://abb-test.gateway.az/payment/rest/")
+
+# ── Security ─────────────────────────────────────────────────
+CORS_ALLOW_ALL_ORIGINS = False  # production-da qapalı
+
+# Brute force qoruması (django-axes)
+INSTALLED_APPS += ["axes"]
+AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+AXES_FAILURE_LIMIT      = 10       # 10 yanlış cəhddən sonra blok
+AXES_COOLOFF_TIME       = 1        # 1 saat blok
+AXES_LOCKOUT_PARAMETERS = ["ip_address"]
+
+# Security headers
+SECURE_BROWSER_XSS_FILTER      = True
+SECURE_CONTENT_TYPE_NOSNIFF    = True
+X_FRAME_OPTIONS                = "DENY"
+SECURE_REFERRER_POLICY         = "same-origin"
+
+# Production-da HTTPS məcburi
+if not DEBUG:
+    SECURE_SSL_REDIRECT         = True
+    SESSION_COOKIE_SECURE       = True
+    CSRF_COOKIE_SECURE          = True
+    SECURE_HSTS_SECONDS         = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
