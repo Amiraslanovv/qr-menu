@@ -663,7 +663,6 @@ async function downloadTableQR(tableId, tableNum) {
 }
   const data = await api("POST",`/owner/tables/${tableId}/regen/`);
   if (data?.secret_code) { toast(`Yeni kod: ${data.secret_code}`); loadTables(); }
-}
 
 async function deleteTable(tableId) {
   if (!confirm("Bu masanı silmək istəyirsiniz?")) return;

@@ -142,7 +142,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .lang-btn.active{background:var(--accent-dim);color:var(--accent);border-color:rgba(212,168,83,.3)}
 
 /* Toast */
-#toast{position:fixed;bottom:calc(90px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(80px);background:var(--surface2);border:.5px solid var(--border);padding:10px 18px;border-radius:24px;font-size:13px;font-weight:500;z-index:200;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap}
+#toast{position:fixed;bottom:calc(90px + var(--safe-bottom));left:50%;transform:translateX(-50%) translateY(80px);background:#1d1d1f;color:#f5f5f5;border:.5px solid rgba(255,255,255,.15);padding:10px 18px;border-radius:24px;font-size:13px;font-weight:500;z-index:500;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;pointer-events:none}
 #toast.show{transform:translateX(-50%) translateY(0)}
 
 /* Success screen */
@@ -495,10 +495,24 @@ window.scrollToSection = idx => {
 // ════════════════════════════════════════════════════════
 // LANG
 // ════════════════════════════════════════════════════════
-function changeLang(lang) {
+async function changeLang(lang) {
   LANG = lang;
   localStorage.setItem("qr_lang", lang);
-  fetchAndRender();
+  // Loading göstər
+  const app = document.getElementById("app");
+  app.style.opacity = "0.4";
+  app.style.transition = "opacity 0.2s";
+  // API-dən yeni dildə məlumat al və yenidən render et
+  try {
+    const res  = await fetch(`${API}/menu/${SLUG}/?lang=${LANG}`);
+    const data = await res.json();
+    app.style.opacity = "1";
+    renderMenu(data);
+    // Scroll-u qoru
+    window.scrollTo(0, 0);
+  } catch(e) {
+    app.style.opacity = "1";
+  }
 }
 
 // ════════════════════════════════════════════════════════
