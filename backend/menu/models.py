@@ -130,7 +130,7 @@ class DailySpecial(models.Model):
 
 class WhatsAppOrder(models.Model):
     """WhatsApp vasitəsilə gələn sifarişləri izləmək üçün"""
-    restaurant  = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="orders")
+    restaurant  = models.ForeignKey(Restaurant, on_delete=models.CASCADE, related_name="whatsapp_orders")
     customer_phone = models.CharField(max_length=30, blank=True)
     message     = models.TextField(verbose_name="Sifariş mətni")
     created_at  = models.DateTimeField(auto_now_add=True)
