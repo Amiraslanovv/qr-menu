@@ -475,6 +475,45 @@ def _send_owner_notification(restaurant, order):
         print(f"WhatsApp bildiriş xətası: {e}")
 
 
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def auto_translate(request):
+    """
+    POST /api/translate/
+    Body: { "text": "Türk qəhvəsi", "from": "az", "to": ["ru", "en"] }
+    Returns: { "ru": "Турецкий кофе", "en": "Turkish Coffee" }
+    Google Translate pulsuz API istifadə edir.
+    """
+    text      = request.data.get("text", "").strip()
+    from_lang = request.data.get("from", "az")
+    to_langs  = request.data.get("to", ["ru", "en"])
+
+    if not text:
+        return Response({"detail": "Mətn boşdur."}, status=400)
+
+    results = {}
+    for lang in to_langs:
+        try:
+            url = "https://translate.googleapis.com/translate_a/single"
+            params = {
+                "client": "gtx",
+                "sl": from_lang,
+                "tl": lang,
+                "dt": "t",
+                "q": text,
+            }
+            resp = requests.get(url, params=params, timeout=5)
+            data = resp.json()
+            translated = "".join([item[0] for item in data[0] if item[0]])
+            results[lang] = translated
+        except Exception as e:
+            results[lang] = ""
+            print(f"Tərcümə xətası ({lang}): {e}")
+
+    return Response(results)
+
+
 # ═══════════════════════════════════════════════════════════════
 #  SUPERADMIN — bütün restoranlar
 # ═══════════════════════════════════════════════════════════════
@@ -505,10 +544,8 @@ def owner_tables(request):
         "id": t.id,
         "number": t.number,
         "label": t.label,
-        "secret_code": t.secret_code,
         "is_active": t.is_active,
-        "qr_url": request.build_absolute_uri(f"/api/menu/{restaurant.slug}/qr/?masa={t.number}"),
-        "menu_url": request.build_absolute_uri(f"/menu/{restaurant.slug}/?masa={t.number}&kod={t.secret_code}"),
+        "menu_url": request.build_absolute_uri(f"/menu/{restaurant.slug}/?masa={t.number}"),
     } for t in tables]
     return Response(data)
 
@@ -516,7 +553,7 @@ def owner_tables(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_table(request):
-    """POST /api/owner/tables/ — yeni masa yarat"""
+    """POST /api/owner/tables/create/ — yeni masa yarat"""
     restaurant = get_owner_restaurant(request.user)
     number = request.data.get("number")
     label  = request.data.get("label", "")
@@ -524,15 +561,13 @@ def create_table(request):
         return Response({"detail": "Masa nömrəsi vacibdir."}, status=400)
     if Table.objects.filter(restaurant=restaurant, number=number).exists():
         return Response({"detail": f"Masa {number} artıq mövcuddur."}, status=400)
-    import random, string
-    code = "".join(random.choices(string.ascii_uppercase + string.digits, k=6))
     table = Table.objects.create(
-        restaurant=restaurant, number=number, label=label, secret_code=code
+        restaurant=restaurant, number=number, label=label, secret_code="STATIC"
     )
     return Response({
         "id": table.id, "number": table.number,
-        "label": table.label, "secret_code": table.secret_code,
-        "menu_url": f"/menu/{restaurant.slug}/?masa={table.number}&kod={table.secret_code}",
+        "label": table.label,
+        "menu_url": f"/menu/{restaurant.slug}/?masa={table.number}",
     }, status=201)
 
 
@@ -543,6 +578,10 @@ def regenerate_table_code(request, table_id):
     restaurant = get_owner_restaurant(request.user)
     table = get_object_or_404(Table, id=table_id, restaurant=restaurant)
     table.regenerate_code()
+
+    # Bu masanın bütün aktiv sessionlarını sil — köhnə QR artıq işləməsin
+    QRScan.objects.filter(table=table).delete()
+
     return Response({
         "id": table.id, "number": table.number,
         "secret_code": table.secret_code,
@@ -567,7 +606,7 @@ def table_qr_svg(request, table_id):
     restaurant = get_owner_restaurant(request.user)
     table = get_object_or_404(Table, id=table_id, restaurant=restaurant)
     menu_url = request.build_absolute_uri(
-        f"/menu/{restaurant.slug}/?masa={table.number}&kod={table.secret_code}"
+        f"/menu/{restaurant.slug}/?masa={table.number}"
     )
     factory = qrcode.image.svg.SvgPathImage
     qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_H,
@@ -595,8 +634,7 @@ def register_scan(request, slug):
     """
     POST /api/menu/<slug>/scan/
     QR skan olunanda çağırılır. 45 dəqiqəlik session yaradır.
-    Body: { "masa": 5, "kod": "A7K2XB" }
-    Returns: { "session_id": "...", "expires_at": "...", "valid": true }
+    Body: { "masa": 5, "lang": "az" }
     """
     from django.utils import timezone
     from datetime import timedelta
@@ -604,7 +642,6 @@ def register_scan(request, slug):
 
     restaurant = get_object_or_404(Restaurant, slug=slug, is_active=True)
     masa_number = request.data.get("masa")
-    kod = request.data.get("kod", "")
     lang = request.data.get("lang", "az")
 
     table = None
@@ -612,18 +649,12 @@ def register_scan(request, slug):
         table = Table.objects.filter(
             restaurant=restaurant, number=masa_number, is_active=True
         ).first()
-        # Gizli kodu yoxla
-        if table and kod and table.secret_code != kod:
-            return Response({
-                "valid": False,
-                "detail": "Masa kodu yanlışdır. Zəhmət olmasa ofisiantı çağırın."
-            }, status=400)
 
     session_id = str(uuid.uuid4())
     now = timezone.now()
     expires_at = now + timedelta(minutes=45)
 
-    scan = QRScan.objects.create(
+    QRScan.objects.create(
         restaurant=restaurant,
         table=table,
         table_number=masa_number,
@@ -633,7 +664,6 @@ def register_scan(request, slug):
         lang=lang,
     )
 
-    # Analytics
     MenuView.objects.create(
         restaurant=restaurant,
         user_agent=request.META.get("HTTP_USER_AGENT", ""),
@@ -708,6 +738,18 @@ def place_order(request, slug):
                     "error": "timeout",
                     "detail": "Sifariş müddəti bitib (45 dəq). Zəhmət olmasa QR-ı yenidən skan edin."
                 }, status=400)
+            # Masa kodu dəyişibsə session-u etibarsız say
+            if scan.table and scan.table_number:
+                current_table = Table.objects.filter(
+                    restaurant=restaurant, number=scan.table_number
+                ).first()
+                if current_table and not QRScan.objects.filter(
+                    session_id=session_id, table=current_table
+                ).exists():
+                    return Response({
+                        "error": "invalid_session",
+                        "detail": "Masa kodu dəyişdirilib. Zəhmət olmasa QR-ı yenidən skan edin."
+                    }, status=400)
         except QRScan.DoesNotExist:
             return Response({
                 "error": "invalid_session",

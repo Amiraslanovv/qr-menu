@@ -2,6 +2,9 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # ── Avtomatik tərcümə ───────────────────────────────────────
+    path("translate/", views.auto_translate, name="translate"),
+
     # ── Auth ────────────────────────────────────────────────
     path("auth/login/",     views.owner_login,    name="login"),
     path("auth/register/",  views.owner_register, name="register"),

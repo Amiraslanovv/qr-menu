@@ -233,7 +233,6 @@ const API = window.location.origin + "/api";
 const params = new URLSearchParams(window.location.search);
 const SLUG   = window.location.pathname.split("/").filter(Boolean)[1] || "";
 const MASA   = params.get("masa") || null;
-const KOD    = params.get("kod")  || null;
 
 // Dil: URL → localStorage → brauzer → az
 function detectLang() {
@@ -309,10 +308,16 @@ function t(key) { return (T[LANG] || T.az)[key] || key; }
 // ════════════════════════════════════════════════════════
 // HELPERS
 // ════════════════════════════════════════════════════════
+let toastTimer = null;
 const toast = msg => {
   const el = document.getElementById("toast");
-  el.textContent = msg; el.classList.add("show");
-  setTimeout(()=>el.classList.remove("show"), 2200);
+  el.textContent = msg;
+  el.classList.add("show");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    el.classList.remove("show");
+    toastTimer = null;
+  }, 2500);
 };
 
 // ════════════════════════════════════════════════════════
@@ -328,7 +333,7 @@ async function initSession() {
   try {
     const res = await fetch(`${API}/menu/${SLUG}/scan/`, {
       method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ masa: MASA ? parseInt(MASA) : null, kod: KOD || "", lang: LANG })
+      body: JSON.stringify({ masa: MASA ? parseInt(MASA) : null, lang: LANG })
     });
     const data = await res.json();
     if (!res.ok) {
@@ -400,11 +405,10 @@ function renderMenu(data) {
     ${["az","ru","en"].map(l=>`<button class="lang-btn ${l===LANG?"active":""}" onclick="changeLang('${l}')">${l.toUpperCase()}</button>`).join("")}
   </div>`;
 
-  // Quick actions
+  // Quick actions — ünvan düyməsi silindi
   html += `<div class="quick-actions">
     ${data.whatsapp ? `<a class="action-btn primary" href="https://wa.me/${data.whatsapp.replace(/\D/g,'')}">💬 WhatsApp</a>` : ""}
     ${data.phone ? `<a class="action-btn" href="tel:${data.phone}">📞 ${data.phone}</a>` : ""}
-    ${data.address ? `<span class="action-btn" onclick="toast('${data.address}')">📍 ${t("masa")}</span>` : ""}
   </div>`;
 
   // Daily specials

@@ -334,7 +334,13 @@ tr:hover td{background:var(--bg)}
 <div class="overlay" id="cat-modal">
   <div class="modal">
     <div class="modal-title">Kateqoriya əlavə et</div>
-    <div class="form-group"><label class="form-label">Ad (AZ) *</label><input class="form-input" id="cat-name-az" placeholder="İçkilər"/></div>
+    <div class="form-group">
+      <label class="form-label">Ad (AZ) *</label>
+      <div style="display:flex;gap:6px">
+        <input class="form-input" id="cat-name-az" placeholder="İçkilər" style="flex:1"/>
+        <button class="btn btn-outline btn-sm" onclick="translateCat()" title="RU və EN-ə avtomatik tərcümə et">🌍 Tərcümə</button>
+      </div>
+    </div>
     <div class="form-group"><label class="form-label">Ad (RU)</label><input class="form-input" id="cat-name-ru" placeholder="Напитки"/></div>
     <div class="form-group"><label class="form-label">Ad (EN)</label><input class="form-input" id="cat-name-en" placeholder="Drinks"/></div>
     <div class="form-group"><label class="form-label">Emoji</label><input class="form-input" id="cat-icon" placeholder="☕" style="width:80px;font-size:20px"/></div>
@@ -349,10 +355,35 @@ tr:hover td{background:var(--bg)}
 <div class="overlay" id="item-modal">
   <div class="modal">
     <div class="modal-title">Element əlavə et</div>
-    <div class="form-group"><label class="form-label">Ad (AZ) *</label><input class="form-input" id="item-name-az"/></div>
-    <div class="form-group"><label class="form-label">Ad (RU)</label><input class="form-input" id="item-name-ru"/></div>
-    <div class="form-group"><label class="form-label">Təsvir (AZ)</label><input class="form-input" id="item-desc-az"/></div>
-    <div class="form-group"><label class="form-label">Təsvir (RU)</label><input class="form-input" id="item-desc-ru"/></div>
+    <div style="display:flex;gap:4px;margin-bottom:10px" id="item-lang-tabs">
+      <button class="btn btn-outline btn-sm" style="background:var(--accent-bg);color:var(--accent)" onclick="setItemLang('az',this)">AZ</button>
+      <button class="btn btn-outline btn-sm" onclick="setItemLang('ru',this)">RU</button>
+      <button class="btn btn-outline btn-sm" onclick="setItemLang('en',this)">EN</button>
+    </div>
+    <div id="item-az">
+      <div class="form-group">
+        <label class="form-label">Ad (AZ) *</label>
+        <div style="display:flex;gap:6px">
+          <input class="form-input" id="item-name-az" style="flex:1"/>
+          <button class="btn btn-outline btn-sm" onclick="translateItem('name')" title="Avtomatik tərcümə et">🌍</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Təsvir (AZ)</label>
+        <div style="display:flex;gap:6px">
+          <input class="form-input" id="item-desc-az" style="flex:1"/>
+          <button class="btn btn-outline btn-sm" onclick="translateItem('desc')" title="Avtomatik tərcümə et">🌍</button>
+        </div>
+      </div>
+    </div>
+    <div id="item-ru" style="display:none">
+      <div class="form-group"><label class="form-label">Ad (RU)</label><input class="form-input" id="item-name-ru"/></div>
+      <div class="form-group"><label class="form-label">Təsvir (RU)</label><input class="form-input" id="item-desc-ru"/></div>
+    </div>
+    <div id="item-en" style="display:none">
+      <div class="form-group"><label class="form-label">Ad (EN)</label><input class="form-input" id="item-name-en"/></div>
+      <div class="form-group"><label class="form-label">Təsvir (EN)</label><input class="form-input" id="item-desc-en"/></div>
+    </div>
     <div class="form-group"><label class="form-label">Kateqoriya *</label><select class="form-input" id="item-cat-id"></select></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Qiymət (AZN) *</label><input class="form-input" id="item-price" type="number" step="0.01"/></div>
@@ -361,6 +392,19 @@ tr:hover td{background:var(--bg)}
     <div style="display:flex;gap:16px;margin-bottom:12px">
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="checkbox" id="item-popular"> 🔥 Populyar</label>
       <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px"><input type="checkbox" id="item-new"> ✨ Yeni</label>
+    </div>
+    <!-- Şəkil yükləmə -->
+    <div class="form-group">
+      <label class="form-label">Şəkil</label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div id="item-img-preview" style="width:60px;height:60px;border-radius:8px;background:var(--bg);border:.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🍴</div>
+        <div style="flex:1">
+          <input type="file" id="item-img-file" accept="image/*" style="display:none" onchange="uploadItemImage(event)"/>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('item-img-file').click()" id="item-img-btn">📷 Şəkil seç</button>
+          <div id="item-img-progress" style="display:none;font-size:12px;color:var(--muted);margin-top:4px">Yüklənir...</div>
+        </div>
+      </div>
+      <input type="hidden" id="item-img-url" value=""/>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('item-modal')">Ləğv et</button>
@@ -606,7 +650,91 @@ async function updateStatus(orderId, status) {
 }
 
 // ════════════════════════════════════════════════════════
-// TABLES
+// AVTOMATİK TƏRCÜMƏ
+// ════════════════════════════════════════════════════════
+async function translateCat() {
+  const text = $("cat-name-az").value.trim();
+  if (!text) { toast("Əvvəlcə AZ adını yaz!"); return; }
+  toast("Tərcümə edilir...");
+  try {
+    const data = await api("POST", "/translate/", { text, from: "az", to: ["ru","en"] });
+    if (data?.ru) $("cat-name-ru").value = data.ru;
+    if (data?.en) $("cat-name-en").value = data.en;
+    toast("Tərcümə tamamlandı ✓");
+  } catch(e) { toast("Tərcümə xətası"); }
+}
+
+async function translateItem(field) {
+  const azInput   = field === "name" ? $("item-name-az") : $("item-desc-az");
+  const ruInput   = field === "name" ? $("item-name-ru") : $("item-desc-ru");
+  const enInput   = field === "name" ? $("item-name-en") : $("item-desc-en");
+  const text = azInput.value.trim();
+  if (!text) { toast("Əvvəlcə AZ mətnini yaz!"); return; }
+  toast("Tərcümə edilir...");
+  try {
+    const data = await api("POST", "/translate/", { text, from: "az", to: ["ru","en"] });
+    if (data?.ru) ruInput.value = data.ru;
+    if (data?.en) enInput.value = data.en;
+    toast("Tərcümə tamamlandı ✓");
+  } catch(e) { toast("Tərcümə xətası"); }
+}
+
+// ════════════════════════════════════════════════════════
+// ELEMENT DİL SEÇİMİ
+// ════════════════════════════════════════════════════════
+function setItemLang(lang, btn) {
+  ["az","ru","en"].forEach(l => { $(`item-${l}`).style.display = l===lang?"block":"none"; });
+  document.querySelectorAll("#item-lang-tabs .btn").forEach(b=>{
+    b.style.background=""; b.style.color="";
+  });
+  btn.style.background="var(--accent-bg)"; btn.style.color="var(--accent)";
+}
+
+// ════════════════════════════════════════════════════════
+// ELEMENT ŞƏKİL YÜKLƏMƏ
+// ════════════════════════════════════════════════════════
+async function uploadItemImage(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  $("item-img-btn").disabled = true;
+  $("item-img-progress").style.display = "block";
+  $("item-img-progress").textContent = "Yüklənir...";
+
+  // Local preview
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const prev = $("item-img-preview");
+    prev.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:8px">`;
+  };
+  reader.readAsDataURL(file);
+
+  // Cloudinary-yə yüklə
+  const form = new FormData();
+  form.append("file", file);
+  form.append("type", "item");
+  try {
+    const res  = await fetch(`${API}/upload/`, {
+      method: "POST",
+      headers: { "Authorization": `Token ${token}` },
+      body: form,
+    });
+    const data = await res.json();
+    if (data?.url) {
+      $("item-img-url").value = data.url;
+      $("item-img-progress").textContent = "Yükləndi ✓";
+      toast("Şəkil yükləndi ✓");
+    } else {
+      $("item-img-progress").textContent = "Xəta: " + (data?.detail||"");
+    }
+  } catch(e) {
+    $("item-img-progress").textContent = "Şəbəkə xətası";
+  }
+  $("item-img-btn").disabled = false;
+  e.target.value = "";
+}
+
+// ════════════════════════════════════════════════════════
+// MASA — sadə (kod olmadan)
 // ════════════════════════════════════════════════════════
 async function loadTables() {
   const tables = await api("GET","/owner/tables/") || [];
@@ -619,11 +747,8 @@ async function loadTables() {
     <div class="masa-card">
       <div class="masa-num">${t.number}</div>
       ${t.label ? `<div class="masa-label">${t.label}</div>` : ""}
-      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Gizli kod:</div>
-      <div class="masa-code">${t.secret_code}</div>
       <div class="masa-actions">
         <button class="btn btn-primary btn-sm" onclick="downloadTableQR(${t.id},${t.number})">⬇ QR</button>
-        <button class="btn btn-outline btn-sm" onclick="regenCode(${t.id})">🔄 Kodu yenilə</button>
         <button class="btn btn-danger btn-sm" onclick="deleteTable(${t.id})">Sil</button>
       </div>
     </div>`).join("");
@@ -777,13 +902,24 @@ async function saveItem() {
   if (!name_az||!price||!cat_id) { toast("Ad, qiymət və kateqoriya vacibdir!"); return; }
   const data = await api("POST","/owner/items/", {
     category:parseInt(cat_id),
-    name_az, name_ru:$("item-name-ru").value,
-    description_az:$("item-desc-az").value, description_ru:$("item-desc-ru").value,
+    name_az, name_ru:$("item-name-ru").value, name_en:$("item-name-en").value,
+    description_az:$("item-desc-az").value, description_ru:$("item-desc-ru").value, description_en:$("item-desc-en").value,
     price, weight_or_volume:$("item-weight").value,
     is_popular:$("item-popular").checked, is_new:$("item-new").checked,
+    image: $("item-img-url").value || "",
   });
-  if (data?.id) { toast("Element əlavə edildi ✓"); closeModal("item-modal"); loadMenu(); }
-  else toast("Xəta: "+JSON.stringify(data));
+  if (data?.id) {
+    toast("Element əlavə edildi ✓");
+    closeModal("item-modal");
+    // Formu sıfırla
+    ["item-name-az","item-name-ru","item-name-en","item-desc-az","item-desc-ru","item-desc-en","item-price","item-weight"].forEach(id => $(id).value="");
+    $("item-popular").checked = false;
+    $("item-new").checked = false;
+    $("item-img-url").value = "";
+    $("item-img-preview").innerHTML = "🍴";
+    $("item-img-progress").style.display = "none";
+    loadMenu();
+  } else toast("Xəta: "+JSON.stringify(data));
 }
 
 // ════════════════════════════════════════════════════════
