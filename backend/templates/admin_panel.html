@@ -181,6 +181,7 @@ tr:hover td{background:var(--bg)}
     <button class="nav-item" data-page="menu" onclick="navigate('menu',this)"><span class="ni">📋</span>Menyu</button>
     <button class="nav-item" data-page="specials" onclick="navigate('specials',this)"><span class="ni">✨</span>Günün təklifi</button>
     <button class="nav-item" data-page="qr" onclick="navigate('qr',this)"><span class="ni">📱</span>QR Kodlar</button>
+    <button class="nav-item" data-page="design" onclick="navigate('design',this)"><span class="ni">🎨</span>Dizayn</button>
     <button class="nav-item" data-page="settings" onclick="navigate('settings',this)"><span class="ni">⚙️</span>Tənzimləmələr</button>
   </nav>
   <div class="sidebar-bottom">
@@ -277,6 +278,157 @@ tr:hover td{background:var(--bg)}
     <div class="card">
       <div class="card-header"><span class="card-title">Masa üzrə QR kodlar</span></div>
       <div id="table-qr-list"></div>
+    </div>
+  </div>
+
+  <!-- DİZAYN -->
+  <div class="page" id="page-design">
+    <div class="page-header"><h1>🎨 Dizayn</h1>
+      <button class="btn btn-primary" onclick="saveDesign()">Yadda saxla</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:20px">
+
+      <!-- Sol: Tənzimləmələr -->
+      <div>
+        <!-- Mövzu -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:14px">🌓 Rəng Mövzusu</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+            <div class="theme-opt" data-theme="dark" onclick="selectTheme('dark',this)"
+                 style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer;text-align:center;background:#0f0f0f;color:#f5f5f5">
+              <div style="font-size:20px">🌙</div><div style="font-size:12px;margin-top:4px">Tünd</div>
+            </div>
+            <div class="theme-opt" data-theme="light" onclick="selectTheme('light',this)"
+                 style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer;text-align:center;background:#f5f5f7;color:#1d1d1f">
+              <div style="font-size:20px">☀️</div><div style="font-size:12px;margin-top:4px">Açıq</div>
+            </div>
+            <div class="theme-opt" data-theme="custom" onclick="selectTheme('custom',this)"
+                 style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer;text-align:center">
+              <div style="font-size:20px">🎨</div><div style="font-size:12px;margin-top:4px">Özəl</div>
+            </div>
+          </div>
+
+          <!-- Özəl rənglər -->
+          <div id="custom-colors" style="display:none">
+            <div class="form-row" style="margin-bottom:12px">
+              <div class="form-group">
+                <label class="form-label">Vurğu rəngi</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="color" id="d-accent" value="#d4a853" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px"/>
+                  <input class="form-input" id="d-accent-hex" value="#d4a853" style="font-family:monospace;font-size:13px" oninput="syncColor('accent')"/>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Fon rəngi</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="color" id="d-bg" value="#0f0f0f" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px"/>
+                  <input class="form-input" id="d-bg-hex" value="#0f0f0f" style="font-family:monospace;font-size:13px" oninput="syncColor('bg')"/>
+                </div>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Kart rəngi</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="color" id="d-surface" value="#1c1c1e" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px"/>
+                  <input class="form-input" id="d-surface-hex" value="#1c1c1e" style="font-family:monospace;font-size:13px" oninput="syncColor('surface')"/>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Mətn rəngi</label>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <input type="color" id="d-text" value="#f5f5f5" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px"/>
+                  <input class="form-input" id="d-text-hex" value="#f5f5f5" style="font-family:monospace;font-size:13px" oninput="syncColor('text')"/>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hazır palet seçimləri -->
+          <div style="margin-top:12px">
+            <div class="form-label" style="margin-bottom:8px">Hazır paletlər</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              ${[
+                {name:"Qızıl",accent:"#d4a853",bg:"#0f0f0f",surface:"#1c1c1e",text:"#f5f5f5"},
+                {name:"Qırmızı",accent:"#e53935",bg:"#0f0f0f",surface:"#1c1c1e",text:"#f5f5f5"},
+                {name:"Yaşıl",accent:"#43a047",bg:"#0f0f0f",surface:"#1c1c1e",text:"#f5f5f5"},
+                {name:"Mavi",accent:"#1e88e5",bg:"#0f0f0f",surface:"#1c1c1e",text:"#f5f5f5"},
+                {name:"Bənövşəyi",accent:"#8e24aa",bg:"#0f0f0f",surface:"#1c1c1e",text:"#f5f5f5"},
+                {name:"Ağ",accent:"#c8963e",bg:"#f5f5f7",surface:"#ffffff",text:"#1d1d1f"},
+              ].map(p=>`<button class="btn btn-outline btn-sm" onclick='applyPalette(${JSON.stringify(p)})'
+                style="display:flex;align-items:center;gap:5px">
+                <div style="width:14px;height:14px;border-radius:50%;background:${p.accent}"></div>${p.name}
+              </button>`).join("")}
+            </div>
+          </div>
+        </div>
+
+        <!-- Şrift -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:14px">🔤 Şrift</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            ${[
+              {val:"system",  name:"Sistem", sample:"Kafe Şəhər", style:"font-family:system-ui"},
+              {val:"inter",   name:"Inter",  sample:"Kafe Şəhər", style:"font-family:'Inter',sans-serif"},
+              {val:"playfair",name:"Playfair",sample:"Kafe Şəhər",style:"font-family:'Playfair Display',serif"},
+              {val:"roboto",  name:"Roboto", sample:"Kafe Şəhər", style:"font-family:'Roboto',sans-serif"},
+            ].map(f=>`<div class="font-opt" data-font="${f.val}" onclick="selectFont('${f.val}',this)"
+              style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer">
+              <div style="${f.style};font-size:15px;font-weight:600;margin-bottom:4px">${f.sample}</div>
+              <div style="font-size:11px;color:var(--muted)">${f.name}</div>
+            </div>`).join("")}
+          </div>
+        </div>
+
+        <!-- Layout -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:14px">📐 Menyu Görünüşü</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+            ${[
+              {val:"card", name:"Kart", icon:"🃏", desc:"Şəkilli, böyük"},
+              {val:"list", name:"Siyahı", icon:"📋", desc:"Yığcam, sürətli"},
+              {val:"grid", name:"Grid", icon:"⊞", desc:"2 sütun"},
+            ].map(l=>`<div class="layout-opt" data-layout="${l.val}" onclick="selectLayout('${l.val}',this)"
+              style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer;text-align:center">
+              <div style="font-size:24px">${l.icon}</div>
+              <div style="font-size:13px;font-weight:600;margin-top:4px">${l.name}</div>
+              <div style="font-size:11px;color:var(--muted)">${l.desc}</div>
+            </div>`).join("")}
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Kart bucaq radiusu: <span id="radius-val">14</span>px</label>
+              <input type="range" id="d-radius" min="0" max="28" value="14"
+                oninput="document.getElementById('radius-val').textContent=this.value;updatePreview()"
+                style="width:100%;accent-color:var(--accent)"/>
+            </div>
+            <div>
+              <label class="form-label" style="margin-bottom:10px">Görünüş seçimləri</label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;font-size:13px">
+                <input type="checkbox" id="d-show-prices" checked onchange="updatePreview()"> Qiymətlər görünsün
+              </label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
+                <input type="checkbox" id="d-show-images" checked onchange="updatePreview()"> Şəkillər görünsün
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sağ: Canlı preview -->
+      <div style="position:sticky;top:20px;height:fit-content">
+        <div class="card">
+          <div class="card-title" style="margin-bottom:12px">👁️ Canlı baxış</div>
+          <iframe id="design-preview"
+            src="/menu/kafe-seher/"
+            style="width:100%;height:580px;border:none;border-radius:10px;overflow:hidden"
+            loading="lazy">
+          </iframe>
+          <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px"
+            onclick="window.open('/menu/kafe-seher/','_blank')">Tam ekranda aç ↗</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -531,6 +683,7 @@ function navigate(page, btn) {
   if (page==="tables")    loadTables();
   if (page==="menu")      loadMenu();
   if (page==="specials")  loadSpecials();
+  if (page==="design")    loadDesign();
   if (page==="qr")        loadQRPage();
 }
 
@@ -1009,8 +1162,184 @@ async function saveSettings() {
 }
 
 // ════════════════════════════════════════════════════════
-// KEYBOARD
+// DİZAYN
 // ════════════════════════════════════════════════════════
+let currentDesign = {
+  theme: "dark",
+  accent_color: "#d4a853",
+  bg_color: "#0f0f0f",
+  surface_color: "#1c1c1e",
+  text_color: "#f5f5f5",
+  font_family: "system",
+  menu_layout: "card",
+  border_radius: 14,
+  show_prices: true,
+  show_images: true,
+};
+
+async function loadDesign() {
+  const data = await api("GET", "/owner/restaurant/");
+  if (!data) return;
+  currentDesign = {
+    theme:         data.theme         || "dark",
+    accent_color:  data.accent_color  || "#d4a853",
+    bg_color:      data.bg_color      || "#0f0f0f",
+    surface_color: data.surface_color || "#1c1c1e",
+    text_color:    data.text_color    || "#f5f5f5",
+    font_family:   data.font_family   || "system",
+    menu_layout:   data.menu_layout   || "card",
+    border_radius: data.border_radius || 14,
+    show_prices:   data.show_prices   !== false,
+    show_images:   data.show_images   !== false,
+  };
+  applyDesignToForm();
+}
+
+function applyDesignToForm() {
+  // Mövzu
+  document.querySelectorAll(".theme-opt").forEach(el => {
+    el.style.outline = el.dataset.theme === currentDesign.theme ? "2px solid var(--accent)" : "none";
+  });
+  if (currentDesign.theme === "custom") {
+    $("custom-colors").style.display = "block";
+  }
+
+  // Rənglər
+  ["accent","bg","surface","text"].forEach(key => {
+    const val = currentDesign[`${key === "accent" ? "accent" : key === "bg" ? "bg" : key === "surface" ? "surface" : "text"}_color`];
+    const colorInput = $(`d-${key}`);
+    const hexInput   = $(`d-${key}-hex`);
+    if (colorInput && val) colorInput.value = val;
+    if (hexInput && val)   hexInput.value   = val;
+  });
+
+  // Şrift
+  document.querySelectorAll(".font-opt").forEach(el => {
+    el.style.outline  = el.dataset.font === currentDesign.font_family ? "2px solid var(--accent)" : "none";
+    el.style.background = el.dataset.font === currentDesign.font_family ? "var(--accent-bg)" : "";
+  });
+
+  // Layout
+  document.querySelectorAll(".layout-opt").forEach(el => {
+    el.style.outline  = el.dataset.layout === currentDesign.menu_layout ? "2px solid var(--accent)" : "none";
+    el.style.background = el.dataset.layout === currentDesign.menu_layout ? "var(--accent-bg)" : "";
+  });
+
+  // Digər
+  const radiusEl = $("d-radius");
+  if (radiusEl) {
+    radiusEl.value = currentDesign.border_radius;
+    $("radius-val").textContent = currentDesign.border_radius;
+  }
+  const showPrices = $("d-show-prices");
+  const showImages = $("d-show-images");
+  if (showPrices) showPrices.checked = currentDesign.show_prices;
+  if (showImages) showImages.checked = currentDesign.show_images;
+}
+
+function selectTheme(theme, el) {
+  currentDesign.theme = theme;
+  document.querySelectorAll(".theme-opt").forEach(e => e.style.outline = "none");
+  el.style.outline = "2px solid var(--accent)";
+
+  const presets = {
+    dark:  { bg: "#0f0f0f", surface: "#1c1c1e", text: "#f5f5f5" },
+    light: { bg: "#f5f5f7", surface: "#ffffff",  text: "#1d1d1f" },
+  };
+  if (theme !== "custom") {
+    const p = presets[theme];
+    currentDesign.bg_color      = p.bg;
+    currentDesign.surface_color = p.surface;
+    currentDesign.text_color    = p.text;
+    $("custom-colors").style.display = "none";
+  } else {
+    $("custom-colors").style.display = "block";
+  }
+  updatePreview();
+}
+
+function selectFont(font, el) {
+  currentDesign.font_family = font;
+  document.querySelectorAll(".font-opt").forEach(e => {
+    e.style.outline = "none"; e.style.background = "";
+  });
+  el.style.outline = "2px solid var(--accent)";
+  el.style.background = "var(--accent-bg)";
+  updatePreview();
+}
+
+function selectLayout(layout, el) {
+  currentDesign.menu_layout = layout;
+  document.querySelectorAll(".layout-opt").forEach(e => {
+    e.style.outline = "none"; e.style.background = "";
+  });
+  el.style.outline = "2px solid var(--accent)";
+  el.style.background = "var(--accent-bg)";
+  updatePreview();
+}
+
+function syncColor(key) {
+  const hexInput   = $(`d-${key}-hex`);
+  const colorInput = $(`d-${key}`);
+  if (!hexInput || !colorInput) return;
+  const val = hexInput.value;
+  if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
+    colorInput.value = val;
+    const fieldMap = { accent:"accent_color", bg:"bg_color", surface:"surface_color", text:"text_color" };
+    currentDesign[fieldMap[key]] = val;
+    updatePreview();
+  }
+}
+
+function applyPalette(palette) {
+  currentDesign.accent_color  = palette.accent;
+  currentDesign.bg_color      = palette.bg;
+  currentDesign.surface_color = palette.surface;
+  currentDesign.text_color    = palette.text;
+  currentDesign.theme         = "custom";
+  applyDesignToForm();
+  $("custom-colors").style.display = "block";
+  updatePreview();
+}
+
+function updatePreview() {
+  currentDesign.border_radius = parseInt($("d-radius")?.value || 14);
+  currentDesign.show_prices   = $("d-show-prices")?.checked !== false;
+  currentDesign.show_images   = $("d-show-images")?.checked !== false;
+
+  // Preview iframe-ə CSS göndər
+  const iframe = $("design-preview");
+  if (!iframe?.contentWindow) return;
+  try {
+    const params = new URLSearchParams({
+      preview: "1",
+      accent:  currentDesign.accent_color,
+      bg:      currentDesign.bg_color,
+      surface: currentDesign.surface_color,
+      text:    currentDesign.text_color,
+      font:    currentDesign.font_family,
+      layout:  currentDesign.menu_layout,
+      radius:  currentDesign.border_radius,
+    });
+    iframe.src = `/menu/${slug}/?${params.toString()}`;
+  } catch(e) {}
+}
+
+async function saveDesign() {
+  currentDesign.border_radius = parseInt($("d-radius")?.value || 14);
+  currentDesign.show_prices   = $("d-show-prices")?.checked !== false;
+  currentDesign.show_images   = $("d-show-images")?.checked !== false;
+
+  const data = await api("PATCH", "/owner/restaurant/", currentDesign);
+  if (data?.name_az || data?.id) {
+    toast("Dizayn saxlandı ✓");
+    updatePreview();
+  } else {
+    toast("Xəta baş verdi");
+  }
+}
+
+// Navigate funksiyasına design yüklənməsini əlavə et
 document.addEventListener("keydown", e => {
   if (e.key==="Escape") document.querySelectorAll(".overlay.open").forEach(o=>o.classList.remove("open"));
 });

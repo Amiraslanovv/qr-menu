@@ -100,7 +100,11 @@ class RestaurantPublicSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "description", "phone",
             "whatsapp", "address", "logo", "cover_image",
-            "wifi_password", "currency", "categories", "specials",
+            "wifi_password", "currency",
+            "theme", "accent_color", "bg_color", "surface_color",
+            "text_color", "font_family", "menu_layout",
+            "show_prices", "show_images", "border_radius",
+            "categories", "specials",
         ]
 
     def _lang(self):

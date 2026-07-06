@@ -230,6 +230,10 @@ def owner_restaurant(request):
         "phone","whatsapp",
         "address_az","address_ru","address_en",
         "logo","cover_image","wifi_password","currency","is_active",
+        # Dizayn sahələri
+        "theme","accent_color","bg_color","surface_color",
+        "text_color","font_family","menu_layout",
+        "show_prices","show_images","border_radius",
     ]
     for field in allowed:
         if field in request.data:

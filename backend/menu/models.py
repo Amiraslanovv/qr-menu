@@ -25,6 +25,42 @@ class Restaurant(models.Model):
     is_active    = models.BooleanField(default=True, verbose_name="Aktivdir")
     wifi_password = models.CharField(max_length=100, blank=True, verbose_name="WiFi şifrəsi")
     currency     = models.CharField(max_length=10, default="AZN", verbose_name="Valyuta")
+
+    # ── Dizayn sahələri ──────────────────────────────────────────
+    # Rəng mövzusu
+    THEME_CHOICES = [
+        ("dark",   "Tünd (default)"),
+        ("light",  "Açıq"),
+        ("custom", "Özəl rənglər"),
+    ]
+    theme        = models.CharField(max_length=10, choices=THEME_CHOICES, default="dark", verbose_name="Mövzu")
+    accent_color = models.CharField(max_length=7, default="#d4a853", verbose_name="Vurğu rəngi (hex)")
+    bg_color     = models.CharField(max_length=7, default="#0f0f0f", verbose_name="Fon rəngi (hex)")
+    surface_color= models.CharField(max_length=7, default="#1c1c1e", verbose_name="Kart rəngi (hex)")
+    text_color   = models.CharField(max_length=7, default="#f5f5f5", verbose_name="Mətn rəngi (hex)")
+
+    # Şrift
+    FONT_CHOICES = [
+        ("system",   "Sistem (default)"),
+        ("inter",    "Inter (müasir)"),
+        ("playfair", "Playfair (elegant)"),
+        ("roboto",   "Roboto (sadə)"),
+    ]
+    font_family  = models.CharField(max_length=20, choices=FONT_CHOICES, default="system", verbose_name="Şrift")
+
+    # Layout
+    LAYOUT_CHOICES = [
+        ("card",  "Kart (şəkilli)"),
+        ("list",  "Siyahı (yığcam)"),
+        ("grid",  "Grid (2 sütun)"),
+    ]
+    menu_layout  = models.CharField(max_length=10, choices=LAYOUT_CHOICES, default="card", verbose_name="Menyu görünüşü")
+
+    # Əlavə dizayn
+    show_prices  = models.BooleanField(default=True, verbose_name="Qiymətlər görünsün")
+    show_images  = models.BooleanField(default=True, verbose_name="Şəkillər görünsün")
+    border_radius= models.IntegerField(default=14, verbose_name="Kart bucaq radiusu (px)")
+
     created_at   = models.DateTimeField(auto_now_add=True)
     updated_at   = models.DateTimeField(auto_now=True)
 
