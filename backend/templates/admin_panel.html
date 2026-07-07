@@ -314,14 +314,14 @@ tr:hover td{background:var(--bg)}
               <div class="form-group">
                 <label class="form-label">Vurğu rəngi</label>
                 <div style="display:flex;gap:8px;align-items:center">
-                  <input type="color" id="d-accent" value="#d4a853" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px"/>
+                  <input type="color" id="d-accent" value="#d4a853" onchange="syncColorFromPicker('accent')" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px"/>
                   <input class="form-input" id="d-accent-hex" value="#d4a853" style="font-family:monospace;font-size:13px" oninput="syncColor('accent')"/>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Fon rəngi</label>
                 <div style="display:flex;gap:8px;align-items:center">
-                  <input type="color" id="d-bg" value="#0f0f0f" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px"/>
+                  <input type="color" id="d-bg" value="#0f0f0f" onchange="syncColorFromPicker('bg')" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px"/>
                   <input class="form-input" id="d-bg-hex" value="#0f0f0f" style="font-family:monospace;font-size:13px" oninput="syncColor('bg')"/>
                 </div>
               </div>
@@ -330,70 +330,95 @@ tr:hover td{background:var(--bg)}
               <div class="form-group">
                 <label class="form-label">Kart rəngi</label>
                 <div style="display:flex;gap:8px;align-items:center">
-                  <input type="color" id="d-surface" value="#1c1c1e" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px"/>
+                  <input type="color" id="d-surface" value="#1c1c1e" onchange="syncColorFromPicker('surface')" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px"/>
                   <input class="form-input" id="d-surface-hex" value="#1c1c1e" style="font-family:monospace;font-size:13px" oninput="syncColor('surface')"/>
                 </div>
               </div>
               <div class="form-group">
                 <label class="form-label">Mətn rəngi</label>
                 <div style="display:flex;gap:8px;align-items:center">
-                  <input type="color" id="d-text" value="#f5f5f5" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px"/>
+                  <input type="color" id="d-text" value="#f5f5f5" onchange="syncColorFromPicker('text')" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px"/>
                   <input class="form-input" id="d-text-hex" value="#f5f5f5" style="font-family:monospace;font-size:13px" oninput="syncColor('text')"/>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Hazır palet seçimləri -->
-          <div style="margin-top:12px">
+          <!-- Hazır paletlər - statik HTML -->
+          <div style="margin-top:14px">
             <div class="form-label" style="margin-bottom:8px">Hazır paletlər</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              ${[
-                {name:"Qızıl",accent:"#d4a853",bg:"#0f0f0f",surface:"#1c1c1e",text:"#f5f5f5"},
-                {name:"Qırmızı",accent:"#e53935",bg:"#0f0f0f",surface:"#1c1c1e",text:"#f5f5f5"},
-                {name:"Yaşıl",accent:"#43a047",bg:"#0f0f0f",surface:"#1c1c1e",text:"#f5f5f5"},
-                {name:"Mavi",accent:"#1e88e5",bg:"#0f0f0f",surface:"#1c1c1e",text:"#f5f5f5"},
-                {name:"Bənövşəyi",accent:"#8e24aa",bg:"#0f0f0f",surface:"#1c1c1e",text:"#f5f5f5"},
-                {name:"Ağ",accent:"#c8963e",bg:"#f5f5f7",surface:"#ffffff",text:"#1d1d1f"},
-              ].map(p=>`<button class="btn btn-outline btn-sm" onclick='applyPalette(${JSON.stringify(p)})'
-                style="display:flex;align-items:center;gap:5px">
-                <div style="width:14px;height:14px;border-radius:50%;background:${p.accent}"></div>${p.name}
-              </button>`).join("")}
+            <div style="display:flex;gap:8px;flex-wrap:wrap" id="palette-btns">
+              <button class="btn btn-outline btn-sm" onclick="applyPalette('qizil')" style="display:flex;align-items:center;gap:5px">
+                <div style="width:14px;height:14px;border-radius:50%;background:#d4a853"></div>Qızıl
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="applyPalette('qirmizi')" style="display:flex;align-items:center;gap:5px">
+                <div style="width:14px;height:14px;border-radius:50%;background:#e53935"></div>Qırmızı
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="applyPalette('yasil')" style="display:flex;align-items:center;gap:5px">
+                <div style="width:14px;height:14px;border-radius:50%;background:#43a047"></div>Yaşıl
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="applyPalette('mavi')" style="display:flex;align-items:center;gap:5px">
+                <div style="width:14px;height:14px;border-radius:50%;background:#1e88e5"></div>Mavi
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="applyPalette('benovseyi')" style="display:flex;align-items:center;gap:5px">
+                <div style="width:14px;height:14px;border-radius:50%;background:#8e24aa"></div>Bənövşəyi
+              </button>
+              <button class="btn btn-outline btn-sm" onclick="applyPalette('aq')" style="display:flex;align-items:center;gap:5px">
+                <div style="width:14px;height:14px;border-radius:50%;background:#c8963e;border:.5px solid #ddd"></div>Ağ
+              </button>
             </div>
           </div>
         </div>
 
-        <!-- Şrift -->
+        <!-- Şrift - statik HTML -->
         <div class="card">
           <div class="card-title" style="margin-bottom:14px">🔤 Şrift</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            ${[
-              {val:"system",  name:"Sistem", sample:"Kafe Şəhər", style:"font-family:system-ui"},
-              {val:"inter",   name:"Inter",  sample:"Kafe Şəhər", style:"font-family:'Inter',sans-serif"},
-              {val:"playfair",name:"Playfair",sample:"Kafe Şəhər",style:"font-family:'Playfair Display',serif"},
-              {val:"roboto",  name:"Roboto", sample:"Kafe Şəhər", style:"font-family:'Roboto',sans-serif"},
-            ].map(f=>`<div class="font-opt" data-font="${f.val}" onclick="selectFont('${f.val}',this)"
-              style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer">
-              <div style="${f.style};font-size:15px;font-weight:600;margin-bottom:4px">${f.sample}</div>
-              <div style="font-size:11px;color:var(--muted)">${f.name}</div>
-            </div>`).join("")}
+            <div class="font-opt" data-font="system" onclick="selectFont('system',this)"
+                 style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer;outline:2px solid var(--accent);background:var(--accent-bg)">
+              <div style="font-family:system-ui;font-size:15px;font-weight:600;margin-bottom:4px">Kafe Şəhər</div>
+              <div style="font-size:11px;color:var(--muted)">Sistem</div>
+            </div>
+            <div class="font-opt" data-font="inter" onclick="selectFont('inter',this)"
+                 style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer">
+              <div style="font-family:'Inter',sans-serif;font-size:15px;font-weight:600;margin-bottom:4px">Kafe Şəhər</div>
+              <div style="font-size:11px;color:var(--muted)">Inter</div>
+            </div>
+            <div class="font-opt" data-font="playfair" onclick="selectFont('playfair',this)"
+                 style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer">
+              <div style="font-family:'Playfair Display',serif;font-size:15px;font-weight:600;margin-bottom:4px">Kafe Şəhər</div>
+              <div style="font-size:11px;color:var(--muted)">Playfair</div>
+            </div>
+            <div class="font-opt" data-font="roboto" onclick="selectFont('roboto',this)"
+                 style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer">
+              <div style="font-family:'Roboto',sans-serif;font-size:15px;font-weight:600;margin-bottom:4px">Kafe Şəhər</div>
+              <div style="font-size:11px;color:var(--muted)">Roboto</div>
+            </div>
           </div>
         </div>
 
-        <!-- Layout -->
+        <!-- Layout - statik HTML -->
         <div class="card">
           <div class="card-title" style="margin-bottom:14px">📐 Menyu Görünüşü</div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
-            ${[
-              {val:"card", name:"Kart", icon:"🃏", desc:"Şəkilli, böyük"},
-              {val:"list", name:"Siyahı", icon:"📋", desc:"Yığcam, sürətli"},
-              {val:"grid", name:"Grid", icon:"⊞", desc:"2 sütun"},
-            ].map(l=>`<div class="layout-opt" data-layout="${l.val}" onclick="selectLayout('${l.val}',this)"
-              style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer;text-align:center">
-              <div style="font-size:24px">${l.icon}</div>
-              <div style="font-size:13px;font-weight:600;margin-top:4px">${l.name}</div>
-              <div style="font-size:11px;color:var(--muted)">${l.desc}</div>
-            </div>`).join("")}
+            <div class="layout-opt" data-layout="card" onclick="selectLayout('card',this)"
+                 style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer;text-align:center;outline:2px solid var(--accent);background:var(--accent-bg)">
+              <div style="font-size:24px">🃏</div>
+              <div style="font-size:13px;font-weight:600;margin-top:4px">Kart</div>
+              <div style="font-size:11px;color:var(--muted)">Şəkilli, böyük</div>
+            </div>
+            <div class="layout-opt" data-layout="list" onclick="selectLayout('list',this)"
+                 style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer;text-align:center">
+              <div style="font-size:24px">📋</div>
+              <div style="font-size:13px;font-weight:600;margin-top:4px">Siyahı</div>
+              <div style="font-size:11px;color:var(--muted)">Yığcam, sürətli</div>
+            </div>
+            <div class="layout-opt" data-layout="grid" onclick="selectLayout('grid',this)"
+                 style="padding:12px;border:.5px solid var(--border);border-radius:10px;cursor:pointer;text-align:center">
+              <div style="font-size:24px">⊞</div>
+              <div style="font-size:13px;font-weight:600;margin-top:4px">Grid</div>
+              <div style="font-size:11px;color:var(--muted)">2 sütun</div>
+            </div>
           </div>
 
           <div class="form-row">
@@ -421,12 +446,12 @@ tr:hover td{background:var(--bg)}
         <div class="card">
           <div class="card-title" style="margin-bottom:12px">👁️ Canlı baxış</div>
           <iframe id="design-preview"
-            src="/menu/kafe-seher/"
-            style="width:100%;height:580px;border:none;border-radius:10px;overflow:hidden"
+            src=""
+            style="width:100%;height:560px;border:none;border-radius:10px;overflow:hidden;background:#0f0f0f"
             loading="lazy">
           </iframe>
           <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px"
-            onclick="window.open('/menu/kafe-seher/','_blank')">Tam ekranda aç ↗</button>
+            onclick="previewMenu()">Tam ekranda aç ↗</button>
         </div>
       </div>
     </div>
