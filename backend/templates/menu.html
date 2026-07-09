@@ -688,10 +688,18 @@ function applyDesign(data) {
 
   // URL preview parametrləri (admin paneldən canlı baxış)
   const urlParams = new URLSearchParams(window.location.search);
-  const accent  = urlParams.get("accent")  || data.accent_color  || "#d4a853";
-  const bg      = urlParams.get("bg")      || data.bg_color      || "#0f0f0f";
-  const surface = urlParams.get("surface") || data.surface_color || "#1c1c1e";
-  const text    = urlParams.get("text")    || data.text_color    || "#f5f5f5";
+
+  // # işarəsi URL-də %23 olur — decode et
+  function getColor(urlKey, dataKey, defaultVal) {
+    let val = urlParams.get(urlKey) || data[dataKey] || defaultVal;
+    if (!val.startsWith("#")) val = "#" + val;
+    return val;
+  }
+
+  const accent  = getColor("accent",  "accent_color",  "#d4a853");
+  const bg      = getColor("bg",      "bg_color",      "#0f0f0f");
+  const surface = getColor("surface", "surface_color", "#1c1c1e");
+  const text    = getColor("text",    "text_color",    "#f5f5f5");
   const font    = urlParams.get("font")    || data.font_family   || "system";
   const layout  = urlParams.get("layout")  || data.menu_layout   || "card";
   const radius  = urlParams.get("radius")  || data.border_radius || 14;
@@ -706,17 +714,21 @@ function applyDesign(data) {
   root.style.setProperty("--muted",       text + "99");
   root.style.setProperty("--radius",      radius + "px");
 
-  // Şrift yüklə
+  // Body rəngini də dəyişdir
+  document.body.style.background = bg;
+  document.body.style.color      = text;
+
+  // Şrift
   const fontMap = {
     inter:    "'Inter', sans-serif",
     playfair: "'Playfair Display', serif",
     roboto:   "'Roboto', sans-serif",
     system:   "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   };
-  const fontFamily = fontMap[font] || fontMap.system;
-  document.body.style.fontFamily = fontFamily;
+  document.body.style.fontFamily = fontMap[font] || fontMap.system;
+  document.body.dataset.font = font;
 
-  // Google Fonts yüklə (lazımdırsa)
+  // Google Fonts yüklə
   if (font !== "system") {
     const fontUrls = {
       inter:    "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap",
@@ -731,10 +743,14 @@ function applyDesign(data) {
     }
   }
 
-  // Layout class-ını body-yə əlavə et
+  // Layout
   document.body.dataset.layout = layout;
 
-  return { layout, show_prices: data.show_prices !== false, show_images: data.show_images !== false };
+  return {
+    layout,
+    show_prices: data.show_prices !== false,
+    show_images: data.show_images !== false,
+  };
 }
 async function fetchAndRender() {
   document.getElementById("loading-text").textContent = t("loading");

@@ -450,8 +450,8 @@ tr:hover td{background:var(--bg)}
             style="width:100%;height:560px;border:none;border-radius:10px;overflow:hidden;background:#0f0f0f"
             loading="lazy">
           </iframe>
-          <button class="btn btn-outline btn-sm" style="width:100%;margin-top:8px"
-            onclick="previewMenu()">Tam ekranda aç ↗</button>
+          <button class="btn btn-outline btn-sm" id="preview-open-btn" style="width:100%;margin-top:8px"
+            onclick="openPreviewTab()">Tam ekranda aç ↗</button>
         </div>
       </div>
     </div>
@@ -1202,6 +1202,21 @@ let currentDesign = {
   show_images: true,
 };
 
+function openPreviewTab() {
+  if (!slug) return;
+  const params = new URLSearchParams({
+    preview: "1",
+    accent:  currentDesign.accent_color,
+    bg:      currentDesign.bg_color,
+    surface: currentDesign.surface_color,
+    text:    currentDesign.text_color,
+    font:    currentDesign.font_family,
+    layout:  currentDesign.menu_layout,
+    radius:  currentDesign.border_radius,
+  });
+  window.open(`/menu/${slug}/?${params.toString()}`, "_blank");
+}
+
 async function loadDesign() {
   const data = await api("GET", "/owner/restaurant/");
   if (!data) return;
@@ -1218,6 +1233,7 @@ async function loadDesign() {
     show_images:   data.show_images   !== false,
   };
   applyDesignToForm();
+  updatePreview();
 }
 
 function applyDesignToForm() {
@@ -1316,15 +1332,46 @@ function syncColor(key) {
   }
 }
 
-function applyPalette(palette) {
-  currentDesign.accent_color  = palette.accent;
-  currentDesign.bg_color      = palette.bg;
-  currentDesign.surface_color = palette.surface;
-  currentDesign.text_color    = palette.text;
-  currentDesign.theme         = "custom";
-  applyDesignToForm();
-  $("custom-colors").style.display = "block";
+function syncColorFromPicker(key) {
+  const colorInput = $(`d-${key}`);
+  const hexInput   = $(`d-${key}-hex`);
+  if (!colorInput || !hexInput) return;
+  hexInput.value = colorInput.value;
+  const fieldMap = { accent:"accent_color", bg:"bg_color", surface:"surface_color", text:"text_color" };
+  currentDesign[fieldMap[key]] = colorInput.value;
   updatePreview();
+}
+
+const PALETTES = {
+  qizil:     { accent:"#d4a853", bg:"#0f0f0f", surface:"#1c1c1e", text:"#f5f5f5" },
+  qirmizi:   { accent:"#e53935", bg:"#0f0f0f", surface:"#1c1c1e", text:"#f5f5f5" },
+  yasil:     { accent:"#43a047", bg:"#0f0f0f", surface:"#1c1c1e", text:"#f5f5f5" },
+  mavi:      { accent:"#1e88e5", bg:"#0f0f0f", surface:"#1c1c1e", text:"#f5f5f5" },
+  benovseyi: { accent:"#8e24aa", bg:"#0f0f0f", surface:"#1c1c1e", text:"#f5f5f5" },
+  aq:        { accent:"#c8963e", bg:"#f5f5f7", surface:"#ffffff", text:"#1d1d1f" },
+};
+
+function applyPalette(key) {
+  const p = PALETTES[key];
+  if (!p) return;
+  currentDesign.accent_color  = p.accent;
+  currentDesign.bg_color      = p.bg;
+  currentDesign.surface_color = p.surface;
+  currentDesign.text_color    = p.text;
+  currentDesign.theme         = "custom";
+
+  // Form-u yenilə
+  const d = $("d-accent"); if(d) { d.value=p.accent; $("d-accent-hex").value=p.accent; }
+  const b = $("d-bg");     if(b) { b.value=p.bg;     $("d-bg-hex").value=p.bg; }
+  const s = $("d-surface");if(s) { s.value=p.surface; $("d-surface-hex").value=p.surface; }
+  const t = $("d-text");   if(t) { t.value=p.text;   $("d-text-hex").value=p.text; }
+
+  // Özəl rəng bölməsini göstər
+  $("custom-colors").style.display = "block";
+  document.querySelectorAll(".theme-opt").forEach(e => e.style.outline="none");
+
+  updatePreview();
+  toast(`${key.charAt(0).toUpperCase()+key.slice(1)} paleti seçildi`);
 }
 
 function updatePreview() {
@@ -1332,22 +1379,30 @@ function updatePreview() {
   currentDesign.show_prices   = $("d-show-prices")?.checked !== false;
   currentDesign.show_images   = $("d-show-images")?.checked !== false;
 
-  // Preview iframe-ə CSS göndər
+  if (!slug) return;
+
+  const params = new URLSearchParams({
+    preview: "1",
+    accent:  currentDesign.accent_color,
+    bg:      currentDesign.bg_color,
+    surface: currentDesign.surface_color,
+    text:    currentDesign.text_color,
+    font:    currentDesign.font_family,
+    layout:  currentDesign.menu_layout,
+    radius:  currentDesign.border_radius,
+  });
+  const previewUrl = `/menu/${slug}/?${params.toString()}`;
+
+  // Əvvəlcə iframe yüklənməyə çalış
   const iframe = $("design-preview");
-  if (!iframe?.contentWindow) return;
-  try {
-    const params = new URLSearchParams({
-      preview: "1",
-      accent:  currentDesign.accent_color,
-      bg:      currentDesign.bg_color,
-      surface: currentDesign.surface_color,
-      text:    currentDesign.text_color,
-      font:    currentDesign.font_family,
-      layout:  currentDesign.menu_layout,
-      radius:  currentDesign.border_radius,
-    });
-    iframe.src = `/menu/${slug}/?${params.toString()}`;
-  } catch(e) {}
+  if (iframe) {
+    iframe.src = previewUrl;
+    // Əgər iframe yüklənmirsə, "Tam ekranda aç" düyməsini güncəllə
+    iframe.onload = () => {
+      const btn = $("preview-open-btn");
+      if (btn) btn.href = previewUrl;
+    };
+  }
 }
 
 async function saveDesign() {
