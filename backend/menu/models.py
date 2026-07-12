@@ -173,8 +173,8 @@ class WhatsAppOrder(models.Model):
     is_notified = models.BooleanField(default=False, verbose_name="Bildiriş göndərildi")
 
     class Meta:
-        verbose_name = "Sifariş"
-        verbose_name_plural = "Sifarişlər"
+        verbose_name = "WhatsApp Sifariş"
+        verbose_name_plural = "WhatsApp Sifarişlər"
         ordering = ["-created_at"]
 
     def __str__(self):

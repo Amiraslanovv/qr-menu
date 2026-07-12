@@ -1377,8 +1377,8 @@ function applyPalette(key) {
 
 function updatePreview() {
   currentDesign.border_radius = parseInt($("d-radius")?.value || 14);
-  currentDesign.show_prices   = $("d-show-prices")?.checked !== false;
-  currentDesign.show_images   = $("d-show-images")?.checked !== false;
+  currentDesign.show_prices   = $("d-show-prices")?.checked === true;
+  currentDesign.show_images   = $("d-show-images")?.checked === true;
 
   if (!slug) return;
 
@@ -1406,8 +1406,8 @@ function updatePreview() {
 
 async function saveDesign() {
   currentDesign.border_radius = parseInt($("d-radius")?.value || 14);
-  currentDesign.show_prices   = $("d-show-prices")?.checked !== false;
-  currentDesign.show_images   = $("d-show-images")?.checked !== false;
+  currentDesign.show_prices   = $("d-show-prices")?.checked === true;
+  currentDesign.show_images   = $("d-show-images")?.checked === true;
 
   const data = await api("PATCH", "/owner/restaurant/", currentDesign);
   if (data?.name_az || data?.id) {

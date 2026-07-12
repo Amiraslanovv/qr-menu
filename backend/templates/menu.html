@@ -172,7 +172,7 @@ body[data-font="roboto"]{font-family:'Roboto',sans-serif!important}
 <div id="app" style="display:none"></div>
 
 <!-- Cart bar -->
-<div id="cart-bar" onclick="openCart()">
+<div id="cart-bar" onclick="openCart()" style="display:none">
   <span class="cart-label" id="cart-label">🛒 0 element</span>
   <span class="cart-total" id="cart-total-bar">0.00 AZN</span>
 </div>
@@ -744,8 +744,19 @@ function applyDesign(data) {
 async function fetchAndRender() {
   document.getElementById("loading-text").textContent = t("loading");
   try {
-    const res  = await fetch(`${API}/menu/${SLUG}/?lang=${LANG}`);
+    const url = MASA
+      ? `${API}/menu/${SLUG}/?lang=${LANG}&masa=${MASA}`
+      : `${API}/menu/${SLUG}/?lang=${LANG}`;
+    const res  = await fetch(url);
     const data = await res.json();
+
+    // Silinmiş masa xətası
+    if (res.status === 404 && data.error === "table_deleted") {
+      document.getElementById("loading-text").textContent =
+        "⚠️ Bu masa artıq mövcud deyil. Zəhmət olmasa ofisiantı çağırın.";
+      return;
+    }
+
     const designOpts = applyDesign(data);
     renderMenu(data, designOpts);
   } catch(e) {

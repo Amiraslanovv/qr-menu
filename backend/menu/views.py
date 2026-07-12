@@ -123,17 +123,28 @@ def owner_me(request):
 @permission_classes([AllowAny])
 def public_menu(request, slug):
     """
-    GET /api/menu/<slug>/?lang=az|ru|en
-    QR skan olunanda çağırılır. Menyu + analitika.
+    GET /api/menu/<slug>/?lang=az|ru|en&masa=3
+    QR skan olunanda çağırılır. Menyu məlumatlarını qaytarır.
     """
     restaurant = get_object_or_404(Restaurant, slug=slug, is_active=True)
     lang       = get_lang(request)
 
-    MenuView.objects.create(
-        restaurant = restaurant,
-        user_agent = request.META.get("HTTP_USER_AGENT", ""),
-        lang       = lang,
-    )
+    # Masa parametri gəlirsə — masanın mövcud olduğunu yoxla
+    masa_number = request.GET.get("masa")
+    if masa_number:
+        from .models import Table
+        table_exists = Table.objects.filter(
+            restaurant=restaurant,
+            number=masa_number,
+            is_active=True
+        ).exists()
+        if not table_exists:
+            return Response({
+                "error": "table_deleted",
+                "detail": "Bu masa artıq mövcud deyil. Zəhmət olmasa ofisiantı çağırın."
+            }, status=404)
+
+    # Analitika artıq register_scan-da yazılır — burada yazmırıq
     ctx  = {"request": request, "lang": lang}
     data = RestaurantPublicSerializer(restaurant, context=ctx).data
     return Response(data)
