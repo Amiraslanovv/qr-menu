@@ -487,7 +487,6 @@ def auto_translate(request):
     POST /api/translate/
     Body: { "text": "Türk qəhvəsi", "from": "az", "to": ["ru", "en"] }
     Returns: { "ru": "Турецкий кофе", "en": "Turkish Coffee" }
-    Google Translate pulsuz API istifadə edir.
     """
     text      = request.data.get("text", "").strip()
     from_lang = request.data.get("from", "az")
@@ -495,6 +494,20 @@ def auto_translate(request):
 
     if not text:
         return Response({"detail": "Mətn boşdur."}, status=400)
+
+    # Xüsusi isimlər — bu adlar tərcümə edilmir, olduğu kimi saxlanılır
+    PROPER_NOUNS = {
+        "dolma", "plov", "lavangi", "levengi", "dovga", "düşbərə", "dushbara",
+        "paklava", "paklavа", "şəkərbura", "shekerbura", "qutab", "kutab",
+        "saj", "kebab", "lula", "lülə", "tikə", "tike", "basturma",
+        "lahmacun", "lavash", "lavəş", "ayran", "narsharab", "narşərab",
+        "sumakh", "sumaq", "baklava", "doner", "döner", "shawarma", "şavarma",
+        "pilaf", "bozbash", "bozbaş", "piti", "kufta", "küftə",
+    }
+
+    if text.lower().strip() in PROPER_NOUNS:
+        # Xüsusi isimdir — bütün dillər üçün eyni mətni qaytar
+        return Response({lang: text for lang in to_langs})
 
     results = {}
     for lang in to_langs:
@@ -635,11 +648,6 @@ def table_qr_svg(request, table_id):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def register_scan(request, slug):
-    """
-    POST /api/menu/<slug>/scan/
-    QR skan olunanda çağırılır. 45 dəqiqəlik session yaradır.
-    Body: { "masa": 5, "lang": "az" }
-    """
     from django.utils import timezone
     from datetime import timedelta
     import uuid
@@ -653,6 +661,12 @@ def register_scan(request, slug):
         table = Table.objects.filter(
             restaurant=restaurant, number=masa_number, is_active=True
         ).first()
+        # Masa silinibsə — sifariş verilməsin
+        if not table:
+            return Response({
+                "valid": False,
+                "detail": "Bu masa artıq mövcud deyil. Zəhmət olmasa ofisiantı çağırın."
+            }, status=400)
 
     session_id = str(uuid.uuid4())
     now = timezone.now()
@@ -668,11 +682,20 @@ def register_scan(request, slug):
         lang=lang,
     )
 
-    MenuView.objects.create(
+    # Analitika — eyni cihazdan 1 saatda yalnız 1 view yazılır
+    user_agent = request.META.get("HTTP_USER_AGENT", "")
+    already_counted = QRScan.objects.filter(
         restaurant=restaurant,
-        user_agent=request.META.get("HTTP_USER_AGENT", ""),
-        lang=lang,
-    )
+        user_agent=user_agent,
+        scanned_at__gte=now - timedelta(hours=1)
+    ).exclude(session_id=session_id).exists()
+
+    if not already_counted:
+        MenuView.objects.create(
+            restaurant=restaurant,
+            user_agent=user_agent,
+            lang=lang,
+        )
 
     return Response({
         "valid": True,

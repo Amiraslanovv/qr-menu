@@ -1204,12 +1204,13 @@ let currentDesign = {
 
 function openPreviewTab() {
   if (!slug) return;
+  const strip = c => c.replace("#","");
   const params = new URLSearchParams({
     preview: "1",
-    accent:  currentDesign.accent_color,
-    bg:      currentDesign.bg_color,
-    surface: currentDesign.surface_color,
-    text:    currentDesign.text_color,
+    accent:  strip(currentDesign.accent_color),
+    bg:      strip(currentDesign.bg_color),
+    surface: strip(currentDesign.surface_color),
+    text:    strip(currentDesign.text_color),
     font:    currentDesign.font_family,
     layout:  currentDesign.menu_layout,
     radius:  currentDesign.border_radius,
@@ -1381,28 +1382,26 @@ function updatePreview() {
 
   if (!slug) return;
 
+  // # işarəsini sil — URL parametrində lazım deyil, menu.html özü əlavə edir
+  const strip = c => c.replace("#","");
+
   const params = new URLSearchParams({
     preview: "1",
-    accent:  currentDesign.accent_color,
-    bg:      currentDesign.bg_color,
-    surface: currentDesign.surface_color,
-    text:    currentDesign.text_color,
+    accent:  strip(currentDesign.accent_color),
+    bg:      strip(currentDesign.bg_color),
+    surface: strip(currentDesign.surface_color),
+    text:    strip(currentDesign.text_color),
     font:    currentDesign.font_family,
     layout:  currentDesign.menu_layout,
     radius:  currentDesign.border_radius,
   });
   const previewUrl = `/menu/${slug}/?${params.toString()}`;
 
-  // Əvvəlcə iframe yüklənməyə çalış
   const iframe = $("design-preview");
-  if (iframe) {
-    iframe.src = previewUrl;
-    // Əgər iframe yüklənmirsə, "Tam ekranda aç" düyməsini güncəllə
-    iframe.onload = () => {
-      const btn = $("preview-open-btn");
-      if (btn) btn.href = previewUrl;
-    };
-  }
+  if (iframe) iframe.src = previewUrl;
+
+  const btn = $("preview-open-btn");
+  if (btn) btn.dataset.url = previewUrl;
 }
 
 async function saveDesign() {

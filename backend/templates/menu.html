@@ -190,16 +190,8 @@ body[data-font="roboto"]{font-family:'Roboto',sans-serif!important}
     </div>
     <div class="order-form">
       <div class="form-group">
-        <label class="form-label" id="lbl-name">Adınız</label>
-        <input class="form-input" id="cust-name" placeholder="Anar"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label" id="lbl-phone">WhatsApp nömrəsi (bildiriş üçün)</label>
-        <input class="form-input" id="cust-phone" type="tel" placeholder="+994 50 ..."/>
-      </div>
-      <div class="form-group">
-        <label class="form-label" id="lbl-note">Qeyd</label>
-        <input class="form-input" id="cust-note" placeholder="Az duzlu, allergiya və s."/>
+        <label class="form-label" id="lbl-note">Qeyd (isteğe bağlı)</label>
+        <input class="form-input" id="cust-note" placeholder="Az duzlu, allergiya, xüsusi istək..."/>
       </div>
       <div class="form-label" id="lbl-payment" style="margin-bottom:8px">Ödəniş üsulu</div>
       <div class="payment-options" id="payment-options">
@@ -423,8 +415,7 @@ function renderMenu(data, designOpts={}) {
 
   // Quick actions — ünvan düyməsi silindi
   html += `<div class="quick-actions">
-    ${data.whatsapp ? `<a class="action-btn primary" href="https://wa.me/${data.whatsapp.replace(/\D/g,'')}">💬 WhatsApp</a>` : ""}
-    ${data.phone ? `<a class="action-btn" href="tel:${data.phone}">📞 ${data.phone}</a>` : ""}
+    ${MASA ? `<span class="action-btn" style="pointer-events:none">🪑 Masa ${MASA}</span>` : ""}
   </div>`;
 
   // Daily specials
@@ -456,14 +447,16 @@ function renderMenu(data, designOpts={}) {
         item.is_new       ? `<span class="badge badge-new">✨ ${t("isnew")}</span>` : "",
       ].filter(Boolean).join("");
       html += `<div class="item-card" onclick="${item.is_available ? `addToCart(${item.id},'${item.name.replace(/'/g,"\\'")}',${item.price},'${cat.icon||"🍴"}')` : ""}">
-        ${item.image ? `<img class="item-img" src="${item.image}" loading="lazy"/>` : `<div class="item-img-ph">${cat.icon||"🍴"}</div>`}
+        ${showImages
+          ? (item.image ? `<img class="item-img" src="${item.image}" loading="lazy"/>` : `<div class="item-img-ph">${cat.icon||"🍴"}</div>`)
+          : ""}
         <div class="item-body">
           ${badges ? `<div class="item-badges">${badges}</div>` : ""}
           <div class="item-name ${!item.is_available?"unavailable":""}">${item.name}</div>
           ${item.description ? `<div class="item-desc">${item.description}</div>` : ""}
           <div class="item-meta">
             <div>
-              <div class="item-price">${parseFloat(item.price).toFixed(2)} ${currency}</div>
+              ${showPrices ? `<div class="item-price">${parseFloat(item.price).toFixed(2)} ${currency}</div>` : ""}
               ${item.weight_or_volume ? `<div class="item-weight">${item.weight_or_volume}</div>` : ""}
             </div>
             ${item.is_available ? `<button class="add-btn" onclick="event.stopPropagation();addToCart(${item.id},'${item.name.replace(/'/g,"\\'")}',${item.price},'${cat.icon||"🍴"}')">+</button>` : ""}
@@ -568,12 +561,8 @@ function renderCartPanel() {
   const currency = menuData?.currency || "AZN";
   document.getElementById("cart-title").textContent = t("order");
   document.getElementById("ct-label").textContent   = t("total");
-  document.getElementById("lbl-name").textContent   = t("name");
-  document.getElementById("lbl-phone").textContent  = t("phone");
   document.getElementById("lbl-note").textContent   = t("note");
   document.getElementById("lbl-payment").textContent= t("payment");
-  document.getElementById("cust-name").placeholder  = t("name_ph");
-  document.getElementById("cust-phone").placeholder = t("phone_ph");
   document.getElementById("cust-note").placeholder  = t("note_ph");
   document.getElementById("btn-order").textContent  = t("btn_order");
   document.getElementById("pm-cash").textContent    = t("cash");
@@ -625,8 +614,8 @@ async function submitOrder() {
   const body = {
     session_id    : sessionId,
     table_number  : MASA ? parseInt(MASA) : null,
-    customer_name : document.getElementById("cust-name").value.trim(),
-    customer_phone: document.getElementById("cust-phone").value.trim(),
+    customer_name : "",
+    customer_phone: "",
     note          : document.getElementById("cust-note").value.trim(),
     payment_method: payMethod,
     items         : cart.map(i => ({id: i.id, name: i.name, price: i.price, qty: i.qty})),
