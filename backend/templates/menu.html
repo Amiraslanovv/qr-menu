@@ -352,10 +352,13 @@ async function initSession() {
     startTimer(45 * 60);
     return true;
   } catch(e) {
-    // Session endpoint işləmədikdə demo mode ilə davam et
-    console.warn("Session xətası, demo modeda davam edir");
-    return true;
-  }
+  console.warn("Session endpoint işləmədikdə demo mode:", e);
+  // Session olmadan da səbət işləsin
+  sessionId = "demo-" + Date.now();
+  sessionExp = Date.now() + 45 * 60 * 1000;
+  startTimer(45 * 60);
+  return true;
+}
 }
 
 function startTimer(totalSeconds) {

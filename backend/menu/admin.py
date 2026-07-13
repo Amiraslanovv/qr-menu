@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Restaurant, Category, MenuItem, DailySpecial, MenuView, WhatsAppOrder
+from .models import Restaurant, Category, MenuItem, DailySpecial, MenuView, WhatsAppOrder, Order, Table, QRScan
 
 
 class CategoryInline(admin.TabularInline):
@@ -85,13 +85,23 @@ class MenuViewAdmin(admin.ModelAdmin):
     list_filter   = ("restaurant", "lang")
     readonly_fields = ("restaurant", "scanned_at", "user_agent", "lang")
 
+@admin.register(Order)
+class OrderAdmin(admin.ModelAdmin):
+    list_display  = ("id", "restaurant", "table_number", "total_price", "status", "payment_method", "created_at")
+    list_filter   = ("restaurant", "status", "payment_method")
+    list_editable = ("status",)
+    readonly_fields = ("created_at", "updated_at", "items_json")
+    search_fields = ("customer_name", "customer_phone")
 
-@admin.register(WhatsAppOrder)
-class WhatsAppOrderAdmin(admin.ModelAdmin):
-    list_display  = ("restaurant", "customer_phone", "created_at", "is_notified")
-    list_filter   = ("restaurant", "is_notified")
-    readonly_fields = ("restaurant", "customer_phone", "message", "created_at")
 
-    class Meta:
-        verbose_name = "WhatsApp Sifariş"
-        verbose_name_plural = "WhatsApp Sifarişlər"
+@admin.register(Table)
+class TableAdmin(admin.ModelAdmin):
+    list_display = ("number", "label", "restaurant", "is_active")
+    list_filter  = ("restaurant", "is_active")
+
+
+@admin.register(QRScan)
+class QRScanAdmin(admin.ModelAdmin):
+    list_display = ("restaurant", "table_number", "scanned_at", "lang")
+    list_filter  = ("restaurant", "lang")
+    readonly_fields = ("session_id", "scanned_at", "expires_at")

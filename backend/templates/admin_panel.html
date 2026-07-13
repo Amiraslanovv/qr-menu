@@ -200,6 +200,8 @@ tr:hover td{background:var(--bg)}
       <div class="stat-card"><div class="stat-lbl">Gözləyən sifarişlər</div><div class="stat-val red" id="s-pending">—</div></div>
       <div class="stat-card"><div class="stat-lbl">Bu günün sifarişləri</div><div class="stat-val accent" id="s-today-orders">—</div></div>
       <div class="stat-card"><div class="stat-lbl">Bu ay skan</div><div class="stat-val" id="s-month">—</div></div>
+      <div class="stat-card"><div class="stat-lbl">Bu gün skan</div><div class="stat-val" id="s-today-scan">—</div></div>
+      <div class="stat-card"><div class="stat-lbl">Bu həftə skan</div><div class="stat-val" id="s-week-scan">—</div></div>
       <div class="stat-card"><div class="stat-lbl">Bu günün gəliri</div><div class="stat-val green" id="s-revenue">—</div></div>
     </div>
     <div class="card">
@@ -364,7 +366,7 @@ tr:hover td{background:var(--bg)}
                 <div style="width:14px;height:14px;border-radius:50%;background:#8e24aa"></div>Bənövşəyi
               </button>
               <button class="btn btn-outline btn-sm" onclick="applyPalette('aq')" style="display:flex;align-items:center;gap:5px">
-                <div style="width:14px;height:14px;border-radius:50%;background:#c8963e;border:.5px solid #ddd"></div>Ağ
+                <div style="width:14px;height:14px;border-radius:50%;background:#ffffff;border:.5px solid #ddd"></div>Ağ
               </button>
             </div>
           </div>
@@ -418,24 +420,6 @@ tr:hover td{background:var(--bg)}
               <div style="font-size:24px">⊞</div>
               <div style="font-size:13px;font-weight:600;margin-top:4px">Grid</div>
               <div style="font-size:11px;color:var(--muted)">2 sütun</div>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Kart bucaq radiusu: <span id="radius-val">14</span>px</label>
-              <input type="range" id="d-radius" min="0" max="28" value="14"
-                oninput="document.getElementById('radius-val').textContent=this.value;updatePreview()"
-                style="width:100%;accent-color:var(--accent)"/>
-            </div>
-            <div>
-              <label class="form-label" style="margin-bottom:10px">Görünüş seçimləri</label>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:8px;font-size:13px">
-                <input type="checkbox" id="d-show-prices" checked onchange="updatePreview()"> Qiymətlər görünsün
-              </label>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px">
-                <input type="checkbox" id="d-show-images" checked onchange="updatePreview()"> Şəkillər görünsün
-              </label>
             </div>
           </div>
         </div>
@@ -718,12 +702,14 @@ function navigate(page, btn) {
 async function loadDashboard() {
   const [analytics, orders] = await Promise.all([
     api("GET","/owner/analytics/"),
-    api("GET","/owner/orders/?status=pending"),
+    api("GET","/owner/orders/"),
   ]);
   if (analytics) {
-    $("s-month").textContent = analytics.this_month_views;
+    $("s-month").textContent     = analytics.this_month_views || 0;
+    $("s-today-scan").textContent = analytics.today_views      || 0;
+    $("s-week-scan").textContent  = analytics.this_week_views  || 0;
     const days = analytics.daily_30 || [];
-    const max  = Math.max(...days.map(d=>d.count),1);
+    const max  = Math.max(...days.map(d=>d.count), 1);
     $("bar-chart").innerHTML = days.slice(-14).map(d=>{
       const dt = new Date(d.date);
       return `<div class="bar-wrap">
@@ -734,13 +720,30 @@ async function loadDashboard() {
     }).join("");
   }
   if (orders) {
-    const pending = orders.filter(o=>o.status==="pending").length;
-    $("s-pending").textContent = pending;
-    const todayOrders = orders.length;
+    const pending     = orders.filter(o=>o.status==="pending").length;
+    const todayOrders = orders.filter(o=>{
+      const d = new Date(o.created_at);
+      const today = new Date();
+      return d.getDate()===today.getDate() && d.getMonth()===today.getMonth();
+    }).length;
+    const revenue = orders.filter(o=>o.payment_status==="paid")
+                          .reduce((s,o)=>s+parseFloat(o.total),0);
+
+    $("s-pending").textContent     = pending;
     $("s-today-orders").textContent = todayOrders;
-    const revenue = orders.filter(o=>o.payment_status==="paid").reduce((s,o)=>s+parseFloat(o.total),0);
-    $("s-revenue").textContent = revenue.toFixed(2) + " AZN";
-    $("recent-orders-list").innerHTML = orders.slice(0,3).map(o=>renderOrderCard(o,true)).join("") || `<p style="color:var(--muted)">Sifariş yoxdur</p>`;
+    $("s-revenue").textContent      = revenue.toFixed(2) + " AZN";
+
+    const recent = orders.filter(o=>o.status==="pending").slice(0,3);
+    $("recent-orders-list").innerHTML = recent.length
+      ? recent.map(o=>renderOrderCard(o,true)).join("")
+      : `<p style="color:var(--muted)">Sifariş yoxdur</p>`;
+
+    // Badge yenilə
+    const badge = $("pending-count");
+    if (badge) {
+      badge.textContent    = pending;
+      badge.style.display  = pending > 0 ? "inline" : "none";
+    }
   }
 }
 
@@ -1349,7 +1352,7 @@ const PALETTES = {
   yasil:     { accent:"#43a047", bg:"#0f0f0f", surface:"#1c1c1e", text:"#f5f5f5" },
   mavi:      { accent:"#1e88e5", bg:"#0f0f0f", surface:"#1c1c1e", text:"#f5f5f5" },
   benovseyi: { accent:"#8e24aa", bg:"#0f0f0f", surface:"#1c1c1e", text:"#f5f5f5" },
-  aq:        { accent:"#c8963e", bg:"#f5f5f7", surface:"#ffffff", text:"#1d1d1f" },
+  aq: { accent:"#d4a853", bg:"#ffffff", surface:"#f5f5f7", text:"#1d1d1f" },
 };
 
 function applyPalette(key) {
@@ -1382,7 +1385,6 @@ function updatePreview() {
 
   if (!slug) return;
 
-  // # işarəsini sil — URL parametrində lazım deyil, menu.html özü əlavə edir
   const strip = c => c.replace("#","");
 
   const params = new URLSearchParams({
