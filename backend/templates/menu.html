@@ -546,8 +546,9 @@ function updateCartBar() {
   const bar   = document.getElementById("cart-bar");
   const count = cart.reduce((s,i) => s + i.qty, 0);
   const total = cart.reduce((s,i) => s + i.price * i.qty, 0);
-  document.getElementById("cart-label").textContent = `🛒 ${count} ${t("items")}`;
+  document.getElementById("cart-label").textContent    = `🛒 ${count} ${t("items")}`;
   document.getElementById("cart-total-bar").textContent = total.toFixed(2) + " AZN";
+  bar.style.display = "";
   bar.classList.toggle("show", count > 0);
 }
 
